@@ -2,6 +2,7 @@ from io import StringIO
 import datefinder
 import re
 import PyPDF2
+import spacy 
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfdocument import PDFDocument
@@ -13,6 +14,7 @@ from pdfminer.pdfparser import PDFParser
 
 class PdfParser:
     def __init__(self,filepath):
+        self.nlp = spacy.load("en_core_web_sm")
         self.caseNum = None
         self.filepath = filepath
         # creating a pdf file object
@@ -41,9 +43,15 @@ class PdfParser:
     def close_pdf(self):
         self.file.close()
         
-    def clean_page(self):
+    def clean_page(self,content):
         #TODO: Remove extra spaces and newlines
-        return
+        content = content.replace('\n','')
+        content = re.sub('\n\s', '\n',content)
+        content = re.sub('\s\n', '\n',content)
+        content = re.sub('\n{2,}', '\n',content)
+        content = re.sub(' {2,}', ' ',content)
+        content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]', '', content)
+        return content
     
     def get_case_details(self):
         #Extracts information regarding the case
@@ -58,24 +66,25 @@ class PdfParser:
         events= {}
         event = ""
 
-        content = self.content
-        content = content.replace('\n','')
-        content = re.sub('\n\s', '\n',content)
-        content = re.sub('\s\n', '\n',content)
-        content = re.sub('\n{2,}', '\n',content)
-        content = re.sub(' {2,}', ' ',content)
+        content = self.clean_page(self.content)
+        
         #print(repr(content))
         #print(content)
-        paragraphs =  re.split('(\d+\.? *[A-Za-z()\- ]{10,}\:)', content)
+        #TODO: Create a static var for regex patterns.
+        paragraphs =  re.split('(\d{1,3}\.? *[A-Za-z()\- ]{10,}\:)', content)
         for para in paragraphs:
-            new_event = re.search('\d+\.? *([A-Za-z()\- ]{10,})\:', para)
+            new_event = re.search('\d{1,3}\.? *([A-Za-z()\- ]{10,})\:', para)
             
             if new_event:
                 event = new_event.group(1)
                 events[event] = []
+
+            sentences = self.nlp(para.strip())
+            for line in sentences.sents:
+                line = line.text.strip()
                 
-            dates = list(datefinder.find_dates(para,strict=True))
-            if event:
-               events[event]+= dates
+                dates = list(datefinder.find_dates(line,strict=True))
+                if event and dates:
+                    events[event]+= dates
             
         return events
