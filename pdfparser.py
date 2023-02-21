@@ -87,6 +87,6 @@ class PdfParser:
                 
                 dates = search_dates(line,settings={'STRICT_PARSING': True,'PARSERS':['absolute-time']})
                 if event and dates:
-                    events[event]+= dates
+                    events[event]+= (line,dates[0][1])
             
         return events
