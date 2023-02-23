@@ -5,7 +5,7 @@ from pdfparser import PdfParser
 
 # account = AuthorizeOutlook().get_account()
 # scheduler = Scheduler(account)
-parser = PdfParser("Sainz - Scheduling Order (Court Filed).pdf")
+parser = PdfParser("./Sample Files/Sainz - Scheduling Order (Court Filed).pdf")
 case = parser.get_case_details()
 print(case)
 events = parser.get_events()

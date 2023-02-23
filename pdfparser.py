@@ -1,5 +1,5 @@
 from io import StringIO
-import datefinder
+from dateparser.search import search_dates
 import re
 import PyPDF2
 import spacy 
@@ -51,6 +51,8 @@ class PdfParser:
         content = re.sub('\n{2,}', '\n',content)
         content = re.sub(' {2,}', ' ',content)
         content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]', '', content)
+        content = re.sub('a.m.', 'am.', content)
+        content = re.sub('p.m.', 'pm.', content)
         return content
     
     def get_case_details(self):
@@ -71,9 +73,9 @@ class PdfParser:
         #print(repr(content))
         #print(content)
         #TODO: Create a static var for regex patterns.
-        paragraphs =  re.split('(\d{1,3}\.? *[A-Za-z()\- ]{10,}\:)', content)
+        paragraphs =  re.split('(\d{1,3}\. *[A-Za-z()\- ]{10,}\:)', content)
         for para in paragraphs:
-            new_event = re.search('\d{1,3}\.? *([A-Za-z()\- ]{10,})\:', para)
+            new_event = re.search('\d{1,3}\. *([A-Za-z()\- ]{10,})\:', para)
             
             if new_event:
                 event = new_event.group(1)
@@ -83,8 +85,8 @@ class PdfParser:
             for line in sentences.sents:
                 line = line.text.strip()
                 
-                dates = list(datefinder.find_dates(line,strict=True))
+                dates = search_dates(line,settings={'STRICT_PARSING': True,'PARSERS':['absolute-time']})
                 if event and dates:
-                    events[event]+= dates
+                    events[event]+= (line,dates[0][1])
             
         return events
