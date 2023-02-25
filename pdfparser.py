@@ -85,7 +85,7 @@ class PdfParser:
         Extracts the details of the case
             Returns:
                 case_num (string): A string containing the case number
-                TODO: Extract plaintiff & defendant name, county, attorney assigned and other details.
+                TODO: Extract plaintiff & defendant name, county, attorney assigned etc.
         """
         # Extracts information regarding the case
         page = self.reader.getPage(0)
@@ -98,6 +98,43 @@ class PdfParser:
             .upper()
         )
         return self.case_num
+    
+    def extract_task(self,sentence):
+        """
+        This algorithm uses the spaCy library to tokenize and parse the input sentence. 
+        First identifies the action verb in the sentence by finding the first verb in the sentence.
+        Then it looks for the object or complement of the verb by searching for related dependencies 
+        such as direct object, clausal complement, open clausal complement, or subject complement.
+        Checks if the current token has any left or right children in the dependency tree, 
+        which indicates that it is part of a noun chunk. 
+        If so, it includes all the tokens in the subtree of the current token as part of the task. 
+        Otherwise, it just includes the current token as part of the task.
+
+        If the extracted task is just a single word or has more than 15 words we return the sentence itself.
+
+        Parameter:
+            sentence (string): A string
+
+        Returns:
+            task (string): A string 
+        """
+        doc = self.nlp(sentence)
+        task = ""
+        for token in doc:
+            if token.pos_ == "VERB":
+                task = token.text
+                break
+        for token in doc:
+            if token.text == task:
+                continue
+            if token.dep_ in ["dobj", "ccomp", "xcomp", "attr"]:
+                # check if token is part of a noun chunk
+                if token.n_lefts > 0 or token.n_rights > 0:
+                    task += " " + " ".join([t.text for t in token.subtree])
+                else:
+                    task += " " + token.text
+        task = task.strip()
+        return (sentence if not (2<=len(task.split(" "))<=15) else task)
 
     def get_events(self):
         """
@@ -109,8 +146,6 @@ class PdfParser:
         event = ""
 
         content = self.clean_page(self.content)
-        # print(repr(content))
-        # print(content)
         paragraphs = re.split("(\d{1,3}\. *[A-Za-z()\- ]{10,}\:)", content)
         for para in paragraphs:
             new_event = re.search("\d{1,3}\. *([A-Za-z()\- ]{10,})\:", para)
@@ -126,7 +161,14 @@ class PdfParser:
                     line,
                     settings={"STRICT_PARSING": True, "PARSERS": ["absolute-time"]},
                 )
+
                 if event and dates:
-                    events[event] += (line, dates[0][1])
+                    new_line = line
+                    new_dates = []
+                    for date in dates:
+                        new_line = new_line.replace(date[0],'')
+                        new_dates.append(date[1])
+                    task = self.extract_task(new_line)
+                    events[event] += (task, new_dates)
 
         return events
