@@ -1,6 +1,5 @@
 from O365 import Account, MSGraphProtocol
 
-
 # TO DO: Store & Read credentials from separate file
 CLIENT_ID = "6f3df88c-8168-4592-b1a0-bf4b7ef4c3e7"
 SECRET_ID = "f.p8Q~.k1_gxUFFruCv0rXczzKks0XoKUtvSOb~O"
@@ -21,11 +20,12 @@ class AuthorizeOutlook:
     """
     def __init__(self):
         self.credentials = (CLIENT_ID, SECRET_ID)
-
         self.protocol = MSGraphProtocol()
         self.scopes = ["Calendars.ReadWrite"]
         self.account = Account(self.credentials, protocol=self.protocol)
-        self.authorized = self.account.authenticate(scopes=self.scopes)
+        self.authorized = self.account.is_authenticated
+        if not self.account.is_authenticated:
+            self.authorized = self.account.authenticate(scopes=self.scopes)
 
     def get_account(self):
         """
@@ -76,7 +76,7 @@ class Scheduler:
 
         """
         new_event = self.calendar.new_event(subject=subject)
-        new_event.body = "Event Description:" + description
+        new_event.body = description
         new_event.start = start_time
         new_event.is_all_day = all_day
         if end_time:
