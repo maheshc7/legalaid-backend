@@ -19,11 +19,11 @@ for event, subevent in events.items():
     event = event.title()
     print(event)
     subject = case + ":" + event
-    for task,dates in subevent.items():
+    for task,date in subevent.items():
         task = task.capitalize()
-        print(task, "   :   ", dates)
+        print(task, "   :   ", date)
         description = event + " : " + task
-        start_time = dates[0]
+        start_time = date
         scheduler.add_event(subject, description, start_time, all_day=True)
 
 parser.close_pdf()
