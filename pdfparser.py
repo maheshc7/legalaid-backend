@@ -152,7 +152,7 @@ class PdfParser:
 
             if new_event:
                 event = new_event.group(1)
-                events[event] = []
+                events[event] = {}
 
             sentences = self.nlp(para.strip())
             for line in sentences.sents:
@@ -163,12 +163,14 @@ class PdfParser:
                 )
 
                 if event and dates:
-                    new_line = line
-                    new_dates = []
                     for date in dates:
-                        new_line = new_line.replace(date[0],'')
-                        new_dates.append(date[1])
-                    task = self.extract_task(new_line)
-                    events[event] += (task, new_dates)
+                        lines = [line]
+                        if len(dates) > 1:
+                            lines = line.split(date[0])
+                        new_line =lines[0].replace(date[0],'')
+                        task = self.extract_task(new_line)
+                        events[event][task] = date[1]
+                        if len(lines) > 1:
+                            line = lines[1]
 
         return events
