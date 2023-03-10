@@ -165,25 +165,14 @@ class PdfParser:
                 )
 
                 if event and dates:
-                    if len(dates) > 1:
-                        for date in dates:
+                    for date in dates:
+                        lines = [line]
+                        if len(dates) > 1:
                             lines = line.split(date[0])
-                            task, new_dates = self.get_task_dates(lines[0],[date])
-                            events[event][task] = new_dates
-                            if len(lines) > 1:
-                                line = lines[1]
-                    else:
-                        task, new_dates = self.get_task_dates(line,dates)
-                        events[event][task] = new_dates
-
+                        new_line =lines[0].replace(date[0],'')
+                        task = self.extract_task(new_line)
+                        events[event][task] = date[1]
+                        if len(lines) > 1:
+                            line = lines[1]
 
         return events
-    
-    def get_task_dates(self, line,dates):
-        new_line = line
-        new_dates = []
-        for date in dates:
-            new_line = new_line.replace(date[0],'')
-            new_dates.append(date[1])
-        task = self.extract_task(new_line)
-        return task, new_dates
