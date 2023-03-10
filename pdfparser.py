@@ -134,8 +134,6 @@ class PdfParser:
                 else:
                     task += " " + token.text
         task = task.strip()
-        task = re.sub(r'[^\w\s]', '', task) #remove punctuation
-        print(repr(task), len(task))
         return (sentence if not (2<=len(task.split(" "))<=15) else task)
 
     def get_events(self):

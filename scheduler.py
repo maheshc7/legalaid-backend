@@ -51,7 +51,10 @@ class Scheduler:
     """
     def __init__(self, account):
         self.scheduler = account.schedule()
-        self.calendar = self.scheduler.get_default_calendar()
+        self.calendar = self.scheduler.get_calendar(calendar_name='legalaid')
+        if(self.calendar is None):
+            print("Create new calendar")
+            self.calendar = self.scheduler.new_calendar(calendar_name='legalaid') #self.scheduler.get_default_calendar()
 
     def get_schedule(self):
         """returns the scheduler object"""
@@ -81,4 +84,4 @@ class Scheduler:
         new_event.is_all_day = all_day
         if end_time:
             new_event.end = end_time
-        #new_event.save()
+        new_event.save()

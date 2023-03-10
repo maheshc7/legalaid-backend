@@ -8,7 +8,7 @@ from scheduler import Scheduler, AuthorizeOutlook
 from pdfparser import PdfParser
 
 # Uncomment below lines to connect to outlook and add events
-if sys.argv[1].endswith(".pdf"):
+if sys.argv[1].lower().endswith(".pdf"):
     filepath = sys.argv[1]
     # account = AuthorizeOutlook().get_account()
     # scheduler = Scheduler(account)
@@ -21,11 +21,11 @@ if sys.argv[1].endswith(".pdf"):
         event = event.title()
         print(event)
         subject = case + ":" + event
-        for task,dates in subevent.items():
+        for task,date in subevent.items():
             task = task.capitalize()
-            print(task, "   :   ", dates)
+            print("   ",task, "   :   ", date)
             description = event + " : " + task
-            start_time = dates[0]
+            start_time = date
             # scheduler.add_event(subject, description, start_time, all_day=True)
 
     parser.close_pdf()
