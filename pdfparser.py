@@ -13,6 +13,7 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
+import fitz
 
 class PdfParser:
     """
@@ -47,16 +48,27 @@ class PdfParser:
         """
         Parses the pdf file and returns the full content as string.
         """
-        output_string = StringIO()
-        parser = PDFParser(self.file)
-        doc = PDFDocument(parser)
-        rsrcmgr = PDFResourceManager()
-        device = TextConverter(rsrcmgr, output_string, laparams=LAParams())
-        interpreter = PDFPageInterpreter(rsrcmgr, device)
-        for page in PDFPage.create_pages(doc):
-            interpreter.process_page(page)
+        # output_string = StringIO()
+        # parser = PDFParser(self.file)
+        # doc = PDFDocument(parser)
+        # rsrcmgr = PDFResourceManager()
+        # device = TextConverter(rsrcmgr, output_string, laparams=LAParams())
+        # interpreter = PDFPageInterpreter(rsrcmgr, device)
+        # for page in PDFPage.create_pages(doc):
+        #     interpreter.process_page(page)
 
-        return output_string.getvalue()
+        # return output_string.getvalue()
+        ###Using PyMuPDF - fitz library to crop
+        content = ""
+        self.file = fitz.open(self.filepath)
+        for page_num in range(self.file.page_count):
+            page = self.file.load_page(page_num)
+            cropbox = page.cropbox
+            page.set_cropbox(fitz.Rect(cropbox[0] + 80.0, cropbox[1]+30, cropbox[2]-30, cropbox[3]))
+            text = page.get_text()
+            content += text
+        self.file.save("crop.pdf")
+        return content
 
     def close_pdf(self):
         """
@@ -125,6 +137,8 @@ class PdfParser:
                 task = token.text
                 break
         for token in doc:
+            if token.lemma_ in ["plaintiff", "defendant", "attorney"]:
+                task = token.text +": "+task
             if token.text == task:
                 continue
             if token.dep_ in ["dobj", "ccomp", "xcomp", "attr"]:
@@ -134,7 +148,21 @@ class PdfParser:
                 else:
                     task += " " + token.text
         task = task.strip()
-        return (sentence if not (2<=len(task.split(" "))<=15) else task)
+        return (sentence if not (3<=len(task.split(" "))<=15) else task)
+
+    def extract_date(self, text):
+        # process the text with spaCy
+        doc = self.nlp(text)
+        dates = []
+        # iterate over each entity in the document
+        for ent in doc.ents:
+            # check if the entity is a date
+            if ent.label_ == "DATE":
+                # print the text and label of the date entity
+                date = search_dates(ent.text,settings={"STRICT_PARSING": False, "PARSERS": ["absolute-time"]},)
+                if date:
+                    dates.append(date[0])
+        return dates
 
     def get_events(self):
         """
@@ -146,9 +174,9 @@ class PdfParser:
         event = ""
 
         content = self.clean_page(self.content)
-        paragraphs = re.split("(\d{1,3}\. *[A-Za-z()\- ]{10,}\:)", content)
+        paragraphs = re.split("(\d{1,3}\. *[A-Za-z()\- ]{10,}(?:\:|\.))", content)
         for para in paragraphs:
-            new_event = re.search("\d{1,3}\. *([A-Za-z()\- ]{10,})\:", para)
+            new_event = re.search("\d{1,3}\. *([A-Za-z()\- ]{10,})(?:\:|\.)", para)
 
             if new_event:
                 event = new_event.group(1)
@@ -157,18 +185,27 @@ class PdfParser:
             sentences = self.nlp(para.strip())
             for line in sentences.sents:
                 line = line.text.strip()
-                dates = search_dates(
+                re_dates = search_dates(
                     line,
                     settings={"STRICT_PARSING": True, "PARSERS": ["absolute-time"]},
                 )
+                nlp_dates = self.extract_date(line)
+                if not re_dates:
+                    re_dates = []
 
-                if event and dates:
+                dates = nlp_dates if (len(nlp_dates)>len(re_dates)) else re_dates
+                # if (len(nlp_dates)>len(re_dates)) :
+                #     print(event, re_dates,nlp_dates)
+
+                if event and len(dates)>0:
                     for date in dates:
                         lines = [line]
                         if len(dates) > 1:
                             lines = line.split(date[0])
                         new_line =lines[0].replace(date[0],'')
                         task = self.extract_task(new_line)
+                        if task in events[event]:
+                            task = line
                         events[event][task] = date[1]
                         if len(lines) > 1:
                             line = lines[1]
