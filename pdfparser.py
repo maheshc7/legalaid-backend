@@ -35,10 +35,10 @@ class PdfParser:
 
     def __init__(self, filepath):
         self.nlp = spacy.load("en_core_web_sm")
-        self.case_num = None
-        self.filepath = filepath
+        # self.case_num = None
+        #self.filepath = filepath
         # creating a pdf file object
-        self.file = open(filepath, "rb")
+        self.file = open(filepath.name, "rb")
         # creating a pdf reader object
         self.reader = PyPDF2.PdfFileReader(self.file)
         self.num_pages = self.reader.numPages
@@ -60,7 +60,7 @@ class PdfParser:
         # return output_string.getvalue()
         ###Using PyMuPDF - fitz library to crop
         content = ""
-        self.file = fitz.open(self.filepath)
+        self.file = fitz.open(self.file, filetype="pdf") #fitz.open(self.filepath)
         for page_num in range(self.file.page_count):
             page = self.file.load_page(page_num)
             cropbox = page.cropbox
@@ -102,17 +102,26 @@ class PdfParser:
                 case_num (string): A string containing the case number
                 TODO: Extract plaintiff & defendant name, county, attorney assigned etc.
         """
+        court = "Arizona Superior Maricopa County"
+        plaintiff = "Saul Goodman"
+        defendant = "Harvey Specter"
         # Extracts information regarding the case
         page = self.reader.getPage(0)
         # extracting text from page
         content = page.extractText().lower()
-        self.case_num = (
+        caseNum = (
             re.search("(?:case no\.|case|no\.):?\s?([a-z]\w{5,})", content)
             .group(1)
             .replace(" ", "")
             .upper()
         )
-        return self.case_num
+        case_info = {
+            "caseNum": caseNum,
+            "court" : court,
+            "plaintiff": plaintiff,
+            "defendant": defendant
+        }
+        return case_info
     
     def extract_task(self,sentence):
         """
@@ -182,15 +191,15 @@ class PdfParser:
         
         events["no event"] = {}
         #self.content = re.sub("(\d\.\s)\n+", r"\1", self.content)
-        print(repr(content))
+        # print(repr(content))
         #paragraphs = self.nlp(self.content)
         paragraphs = re.split("\n",content) #re.split("(\d{1,3}\. *[A-Za-z()\- ]{10,}(?:\:|\.))", content)
         for para in paragraphs:
             para = self.clean_page(para)
-            print("PARA :   ",repr(para))
+            # print("PARA :   ",repr(para))
             new_events = re.findall("(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", para)
             if new_events:
-                print("NEW_EVENTS(dot)   :   ",new_events)
+                # print("NEW_EVENTS(dot)   :   ",new_events)
                 para = re.sub(r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", r"\1:",para)
             new_event = re.search("\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", para)
             para = re.sub("\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", "",para)
@@ -201,7 +210,7 @@ class PdfParser:
             sentences = self.nlp(para.strip())
             for line in sentences.sents:
                 line = line.text.strip()
-                print("LINE: ",line)
+                # print("LINE: ",line)
                 re_dates = search_dates(
                     line,
                     settings={"STRICT_PARSING": True, "PARSERS": ["absolute-time"]},

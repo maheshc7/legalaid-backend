@@ -1,8 +1,11 @@
 from O365 import Account, MSGraphProtocol, FileSystemTokenBackend
+from dotenv import load_dotenv
+import os
 
 # TO DO: Store & Read credentials from separate file
-CLIENT_ID = "6f3df88c-8168-4592-b1a0-bf4b7ef4c3e7"
-SECRET_ID = "f.p8Q~.k1_gxUFFruCv0rXczzKks0XoKUtvSOb~O"
+load_dotenv()
+CLIENT_ID = os.getenv("CLIENT_ID")
+SECRET_ID = os.getenv("CLIENT_SECRET")
 
 
 class AuthorizeOutlook:
