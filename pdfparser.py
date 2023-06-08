@@ -185,9 +185,6 @@ class PdfParser:
         events = {}
         event = ""
         content = self.clean_page(self.content)
-        f = open("test.txt", "w")
-        f.write(content)
-        f.close()
         
         events["no event"] = {}
         #self.content = re.sub("(\d\.\s)\n+", r"\1", self.content)

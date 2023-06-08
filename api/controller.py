@@ -64,7 +64,7 @@ def upload_file():
 
     try:
         # Save the uploaded file to a temporary file
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=True) as temp_file:
             file.save(temp_file.name)
 
         # Extract event details from the PDF
