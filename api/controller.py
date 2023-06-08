@@ -66,8 +66,8 @@ def upload_file():
     try:
         # Save the uploaded file to a temporary file
         #with tempfile.NamedTemporaryFile(suffix='.pdf', delete=True) as temp_file:
-        file.save(app.root_path+"/temp.pdf")
-        file_path = app.root_path + '/temp.pdf'
+        file.save("/tmp/temp.pdf")
+        file_path = '/tmp/temp.pdf'
         # Extract event details from the PDF
         case_info = extract_details(file_path)
         os.remove(file_path)
