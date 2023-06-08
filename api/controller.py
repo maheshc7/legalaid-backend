@@ -6,9 +6,10 @@ Adds new events to the calendar.
 # import sys
 from flask import Flask, request, jsonify
 import uuid
+import os
 import tempfile
 # from scheduler import Scheduler, AuthorizeOutlook
-from .pdfparser import PdfParser
+from pdfparser import PdfParser
 
 # Uncomment below lines to connect to outlook and add events
 # if sys.argv[1].lower().endswith(".pdf"):
@@ -64,12 +65,12 @@ def upload_file():
 
     try:
         # Save the uploaded file to a temporary file
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=True) as temp_file:
-            file.save(temp_file.name)
-
+        #with tempfile.NamedTemporaryFile(suffix='.pdf', delete=True) as temp_file:
+        file.save(app.root_path+"/temp.pdf")
+        file_path = app.root_path + '/temp.pdf'
         # Extract event details from the PDF
-        case_info = extract_details(temp_file)
-        
+        case_info = extract_details(file_path)
+        os.remove(file_path)
         # Return the events in JSON format
         return jsonify(case_info), 200
 

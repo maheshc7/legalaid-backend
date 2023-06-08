@@ -38,7 +38,7 @@ class PdfParser:
         # self.case_num = None
         #self.filepath = filepath
         # creating a pdf file object
-        self.file = open(filepath.name, "rb")
+        self.file = open(filepath, "rb")
         # creating a pdf reader object
         self.reader = PyPDF2.PdfFileReader(self.file)
         self.num_pages = self.reader.numPages
