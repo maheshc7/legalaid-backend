@@ -46,6 +46,10 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
     return response
 
+@app.route('/', methods=['GET'])
+def index():
+    return "You have reached the Homepage of LegalAid Backend"
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     # Check if a file was included in the request
