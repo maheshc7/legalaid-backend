@@ -67,7 +67,7 @@ class PdfParser:
             #page.set_cropbox(fitz.Rect(cropbox[0] + 70.0, cropbox[1]+30, cropbox[2]-30, cropbox[3]))
             text = page.get_text()
             content += text
-        self.file.save("crop.pdf")
+        # self.file.save("crop.pdf")
         return content
 
     def close_pdf(self):
