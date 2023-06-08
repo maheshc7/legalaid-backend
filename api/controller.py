@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 import uuid
 import tempfile
 # from scheduler import Scheduler, AuthorizeOutlook
-from .pdfparser import PdfParser
+from ..pdfparser import PdfParser
 
 # Uncomment below lines to connect to outlook and add events
 # if sys.argv[1].lower().endswith(".pdf"):
