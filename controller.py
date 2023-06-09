@@ -8,8 +8,9 @@ from flask import Flask, request, jsonify
 import uuid
 import os
 import tempfile
+from pdfparser import PdfParser
+import concurrent.futures
 # from scheduler import Scheduler, AuthorizeOutlook
-from .pdfparser import PdfParser
 
 # Uncomment below lines to connect to outlook and add events
 # if sys.argv[1].lower().endswith(".pdf"):
@@ -65,12 +66,16 @@ def upload_file():
 
     try:
         # Save the uploaded file to a temporary file
-        #with tempfile.NamedTemporaryFile(suffix='.pdf', delete=True) as temp_file:
-        file.save("/tmp/temp.pdf")
-        file_path = '/tmp/temp.pdf'
-        # Extract event details from the PDF
-        case_info = extract_details(file_path)
-        os.remove(file_path)
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+            file.save(temp_file.name)
+
+        # Process the PDF file in a separate thread
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(extract_details, temp_file)
+            case_info = future.result()
+        # # Extract event details from the PDF
+        # case_info = extract_details(temp_file)
+        os.remove(temp_file.name)
         # Return the events in JSON format
         return jsonify(case_info), 200
 
@@ -106,4 +111,4 @@ def extract_details(file):
     return details
 
 if __name__ == '__main__':
-    app.run()
+    app.run( threaded=True)
