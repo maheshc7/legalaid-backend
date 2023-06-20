@@ -99,7 +99,7 @@ def extract_details(file):
             data = {
                 "id" : uuid.uuid4(),
                 "subject": event,
-                "date" : date,
+                "date" : str(date.date()),
                 "description": task
             }
 
