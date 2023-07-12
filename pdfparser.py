@@ -35,39 +35,20 @@ class PdfParser:
 
     def __init__(self, filepath):
         self.nlp = spacy.load("en_core_web_sm")
-        # self.case_num = None
-        #self.filepath = filepath
         # creating a pdf file object
-        self.file = open(filepath.name, "rb")
-        # creating a pdf reader object
-        self.reader = PyPDF2.PdfFileReader(self.file)
-        self.num_pages = self.reader.numPages
+        self.file = fitz.open(filepath, filetype="pdf")
         self.content = self.__parse().lower()
 
     def __parse(self):
         """
         Parses the pdf file and returns the full content as string.
         """
-        # output_string = StringIO()
-        # parser = PDFParser(self.file)
-        # doc = PDFDocument(parser)
-        # rsrcmgr = PDFResourceManager()
-        # device = TextConverter(rsrcmgr, output_string, laparams=LAParams())
-        # interpreter = PDFPageInterpreter(rsrcmgr, device)
-        # for page in PDFPage.create_pages(doc):
-        #     interpreter.process_page(page)
-
-        # return output_string.getvalue()
         ###Using PyMuPDF - fitz library to crop
         content = ""
-        self.file = fitz.open(self.file, filetype="pdf") #fitz.open(self.filepath)
         for page_num in range(self.file.page_count):
             page = self.file.load_page(page_num)
-            cropbox = page.cropbox
-            #page.set_cropbox(fitz.Rect(cropbox[0] + 70.0, cropbox[1]+30, cropbox[2]-30, cropbox[3]))
             text = page.get_text()
             content += text
-        # self.file.save("crop.pdf")
         return content
 
     def close_pdf(self):
@@ -82,15 +63,13 @@ class PdfParser:
             Returns:
                 The cleaned up string.
         """
-        #content = content.replace("\n", "")
         content = re.sub(r"\n\s+", "\n ", content)
         content = re.sub(r"(\s\n)+", " \n", content)
-        #content = re.sub("\n{2,}", "\n", content)
-        #content = re.sub(" {2,}", " ", content)
         content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]", "", content)
-        content = re.sub("\d{1,2}\s\n", "", content)
-        content = re.sub("(\W\d{1,2}\.\s)\n+", r"\n \1", content)
-        content = re.sub("\n(\S+?)", r"\1", content)
+        content = re.sub(r"\d{1,2}\s\n", "", content)
+        content = re.sub(r"(\W\d{1,2}\.\s)\n+", r"\n \1", content)
+        content = re.sub(r"\n(\d{1,2}\.)", r"\n \1", content)
+        content = re.sub(r"\n(\S+?)", r"\1", content)
         content = re.sub("a.m.", "am.", content)
         content = re.sub("p.m.", "pm.", content)
         return content
@@ -106,9 +85,9 @@ class PdfParser:
         plaintiff = "Saul Goodman"
         defendant = "Harvey Specter"
         # Extracts information regarding the case
-        page = self.reader.getPage(0)
+        page = self.file.load_page(0)
         # extracting text from page
-        content = page.extractText().lower()
+        content = page.get_text().lower()
         caseNum = (
             re.search("(?:case no\.|case|no\.):?\s?([a-z]\w{5,})", content)
             .group(1)
@@ -187,19 +166,14 @@ class PdfParser:
         content = self.clean_page(self.content)
         
         events["no event"] = {}
-        #self.content = re.sub("(\d\.\s)\n+", r"\1", self.content)
-        # print(repr(content))
-        #paragraphs = self.nlp(self.content)
-        paragraphs = re.split("\n",content) #re.split("(\d{1,3}\. *[A-Za-z()\- ]{10,}(?:\:|\.))", content)
+        paragraphs = re.split("\n",content)
         for para in paragraphs:
             para = self.clean_page(para)
-            # print("PARA :   ",repr(para))
             new_events = re.findall("(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", para)
             if new_events:
-                # print("NEW_EVENTS(dot)   :   ",new_events)
                 para = re.sub(r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", r"\1:",para)
-            new_event = re.search("\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", para)
-            para = re.sub("\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", "",para)
+            new_event = re.search(r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", para)
+            para = re.sub(r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", "",para)
             if new_event:
                 event = new_event.group(1)
                 events[event] = {}
@@ -207,7 +181,6 @@ class PdfParser:
             sentences = self.nlp(para.strip())
             for line in sentences.sents:
                 line = line.text.strip()
-                # print("LINE: ",line)
                 re_dates = search_dates(
                     line,
                     settings={"STRICT_PARSING": True, "PARSERS": ["absolute-time"]},
@@ -217,14 +190,11 @@ class PdfParser:
                     re_dates = []
 
                 dates = nlp_dates if (len(nlp_dates)>len(re_dates)) else re_dates
-                # if (len(nlp_dates)>len(re_dates)) :
-                #     print(event, re_dates,nlp_dates)
 
                 if not event:
                     event = 'no event'
 
                 if event and len(dates)>0:
-                    # print("LINE: ",line, dates)
                     for date in dates:
                         lines = [line]
                         if len(dates) > 1:

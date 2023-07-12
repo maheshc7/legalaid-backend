@@ -3,39 +3,13 @@ Entry point for the application.
 Handles the calls to make the Outlook API authentication
 Adds new events to the calendar.
 """
-# import sys
+
 from flask import Flask, request, jsonify
 import uuid
 import os
 import tempfile
 from pdfparser import PdfParser
 import concurrent.futures
-# from scheduler import Scheduler, AuthorizeOutlook
-
-# Uncomment below lines to connect to outlook and add events
-# if sys.argv[1].lower().endswith(".pdf"):
-#     filepath = sys.argv[1]
-#     # account = AuthorizeOutlook().get_account()
-#     # scheduler = Scheduler(account)
-#     parser = PdfParser(filepath=filepath)
-#     case = parser.get_case_details()
-#     print(case)
-#     events = parser.get_events()
-#     for event, subevent in events.items():
-#         #print(event, "   :   ", subevent)
-#         event = event.title()
-#         print(event)
-#         subject = case + ":" + event
-#         for task,date in subevent.items():
-#             task = task.capitalize()
-#             print("   ",task, "   :   ", date)
-#             description = event + " : " + task
-#             start_time = date
-#             # scheduler.add_event(subject, description, start_time, all_day=True)
-
-#     parser.close_pdf()
-# else:
-#     print("Please enter a PDF filepath")
 
 app = Flask(__name__)
 
@@ -107,6 +81,7 @@ def extract_details(file):
     
     details["case"] = case_details
     details["events"] = event_details
+    details["length"] = len(event_details)
     
     return details
 
