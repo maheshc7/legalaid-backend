@@ -130,6 +130,7 @@ class PdfParser:
         for token in doc:
             if token.lemma_ in ["plaintiff", "defendant", "attorney"]:
                 task = token.text +": "+task
+
             if token.text == task:
                 continue
             if token.dep_ in ["dobj", "ccomp", "xcomp", "attr"]:
