@@ -1,8 +1,12 @@
-from O365 import Account, MSGraphProtocol
+
+from O365 import Account, MSGraphProtocol, FileSystemTokenBackend
+from dotenv import load_dotenv
+import os
 
 # TO DO: Store & Read credentials from separate file
-CLIENT_ID = "6f3df88c-8168-4592-b1a0-bf4b7ef4c3e7"
-SECRET_ID = "f.p8Q~.k1_gxUFFruCv0rXczzKks0XoKUtvSOb~O"
+load_dotenv()
+CLIENT_ID = os.getenv("CLIENT_ID")
+SECRET_ID = os.getenv("CLIENT_SECRET")
 
 
 class AuthorizeOutlook:
@@ -21,17 +25,17 @@ class AuthorizeOutlook:
     def __init__(self):
         self.credentials = (CLIENT_ID, SECRET_ID)
         self.protocol = MSGraphProtocol()
-        self.scopes = ["Calendars.ReadWrite"]
-        self.account = Account(self.credentials, protocol=self.protocol)
+        self.scopes = self.protocol.get_scopes_for(["Calendars.ReadWrite","offline_access"])#["Calendars.ReadWrite","offline_access"]
+        token_backend = FileSystemTokenBackend(token_path='tokens', token_filename='o365_token.txt')
+        self.account = Account(self.credentials, protocol=self.protocol, token_backend = token_backend)
         self.authorized = self.account.is_authenticated
-        if not self.account.is_authenticated:
+        if not self.authorized:
             self.authorized = self.account.authenticate(scopes=self.scopes)
 
     def get_account(self):
         """
             returns the account object if authentication is successfull, else returns unauthorized
         """
-
         if self.authorized:
             return self.account
         else:
@@ -51,7 +55,10 @@ class Scheduler:
     """
     def __init__(self, account):
         self.scheduler = account.schedule()
-        self.calendar = self.scheduler.get_default_calendar()
+        self.calendar = self.scheduler.get_calendar(calendar_name='legalaid')
+        if(self.calendar is None):
+            print("Create new calendar")
+            self.calendar = self.scheduler.new_calendar(calendar_name='legalaid') #self.scheduler.get_default_calendar()
 
     def get_schedule(self):
         """returns the scheduler object"""
