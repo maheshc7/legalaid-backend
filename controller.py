@@ -106,11 +106,15 @@ def extract_details(file):
     #TODO: Eventually move it to a separate API endpoint. 
     gpt_events = parser.get_gpt_events()
 
+    #TODO: Eventually move it to a separate API endpoint. 
+    gpt_events = parser.get_gpt_events()
+
     details["case"] = case_details
     details["events"] = event_details
     details["gpt_events"] = gpt_events
+    details["gpt_events"] = gpt_events
     details["length"] = len(event_details)
-    details["gpt_length"] = len(gpt_events)
+    details["length"] = len(gpt_events)
 
     return details
 
