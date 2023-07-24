@@ -110,7 +110,7 @@ def extract_details(file):
     details["events"] = event_details
     details["gpt_events"] = gpt_events
     details["length"] = len(event_details)
-    details["length"] = len(gpt_events)
+    details["gpt_length"] = len(gpt_events)
 
     return details
 
