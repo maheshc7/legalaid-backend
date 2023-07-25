@@ -6,6 +6,7 @@ import spacy
 from dateparser.search import search_dates
 
 import fitz
+import gpt_parser
 
 
 class PdfParser:
@@ -14,7 +15,6 @@ class PdfParser:
 
     Attributes:
         nlp: A spacy model used for splitting paragraphs.
-        filepath: Path location of the pdf file to be parsed.
         file: PDF file to be parsed.
         content: Full content of the pdf file.
 
@@ -23,7 +23,10 @@ class PdfParser:
         clean_pdf: trims(sapce and newline) the content of the file.
         get_case_details: function to extract case details
         close_pdf: function to close the pdf
+        extract_task: function to extract the title/subject from a sentence
+        extract_dates: extract the dates from a sentence
         get_events: function to get the events and their associated subevents and dates.
+        get_gpt_events: function to get the list of procedures and dates in JSON using ChatGPT
     """
 
     def __init__(self, filepath):
@@ -50,7 +53,7 @@ class PdfParser:
         """
         self.file.close()
 
-    def clean_page(self, content):
+    def clean_pdf(self, content):
         """
         Applies all regex substitutions to remove additional new lines and whitespace.
             Returns:
@@ -163,11 +166,11 @@ class PdfParser:
         """
         events = {}
         event = ""
-        content = self.clean_page(self.content)
+        content = self.clean_pdf(self.content)
         events["no event"] = {}
         paragraphs = re.split("\n", content)
         for para in paragraphs:
-            para = self.clean_page(para)
+            para = self.clean_pdf(para)
             new_events = re.findall("(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", para)
             if new_events:
                 para = re.sub(r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", r"\1:", para)
@@ -207,3 +210,22 @@ class PdfParser:
                             line = lines[1]
 
         return events
+    
+    def get_gpt_events(self):
+        """
+        Returns the events and their corresponding dates
+            Returns:
+                events: List of JSON items containing the subject, description and dates.
+        """
+        content = self.clean_pdf(self.content)
+        sentences = self.nlp(content)
+        content = ""
+        for line in sentences.sents:
+            line = line.text.strip()
+            nlp_dates = self.extract_date(line)
+            if nlp_dates:
+                content += line
+
+        gpt_events = gpt_parser.get_completion(content=content)
+        return gpt_events
+                
