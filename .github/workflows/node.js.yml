@@ -28,13 +28,13 @@ jobs:
 
     - name: Install backend dependencies
       run: pip install -r requirements.txt
-      # working-directory: .
+      working-directory: path/to/your/backend/code
 
     - name: Run backend tests with coverage
       run: |
         coverage run -m pytest
-        coverage report -m
-      working-directory: ".coverage"
+        coverage report
+      working-directory: .
 
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       name: Get Backend Coverage for badge
