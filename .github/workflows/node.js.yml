@@ -1,0 +1,59 @@
+name: Build and Test
+
+on:
+  push:
+    # branches:
+    #   - main
+  pull_request:
+    # branches:
+    #   - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run tests
+      run: pytest
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage-report
+        path: path/to/coverage/folder
+
+    - name: Get Coverage for badge
+      if: always()  # This ensures the step runs even if the previous steps fail
+      run: |
+        COVERAGE=$(cat path/to/coverage/folder/coverage.txt)
+        COVERAGE=${COVERAGE:-'0%'}  # Set to '0%' if coverage is empty
+        echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+
+        REF=${{ github.ref }}
+        IFS='/' read -ra PATHS <<< "$REF"
+        BRANCH_NAME="${PATHS[2]}"
+        echo "BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+
+    - name: Create the Badge
+      if: always()  # This ensures the step runs even if the previous steps fail
+      uses: schneegans/dynamic-badges-action@v1.0.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: cdc60bed264cf5afd17e322cee8feee2
+        filename: legalaid-backend__${{ env.BRANCH }}.json
+        label: Test Coverage
+        message: ${{ env.COVERAGE }}
+        color: green
+        namedLogo: pytest
