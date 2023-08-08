@@ -13,6 +13,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -22,38 +26,30 @@ jobs:
       with:
         python-version: 3.8
 
-    - name: Install dependencies
+    - name: Install backend dependencies
       run: pip install -r requirements.txt
+      working-directory: path/to/your/backend/code
 
-    - name: Run tests
-      run: pytest
-
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v2
-      with:
-        name: coverage report
-        # path: .coverage
-
-    - name: Get Coverage for badge
-      if: always()  # This ensures the step runs even if the previous steps fail
+    - name: Run backend tests with coverage
       run: |
-        COVERAGE=$(cat path/to/coverage/folder/coverage.txt)
-        COVERAGE=${COVERAGE:-'0%'}  # Set to '0%' if coverage is empty
-        echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+        coverage run -m pytest
+        coverage report -m
+      working-directory: path/to/your/backend/code
 
-        REF=${{ github.ref }}
-        IFS='/' read -ra PATHS <<< "$REF"
-        BRANCH_NAME="${PATHS[2]}"
-        echo "BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+    - if: ${{ matrix.os == 'ubuntu-latest' }}
+      name: Get Backend Coverage for badge
+      run: |
+        SUMMARY="$(coverage report | grep TOTAL | awk '{print $4}')"
+        echo "BACKEND_COVERAGE=$(echo ${SUMMARY})" >> $GITHUB_ENV
 
-    - name: Create the Badge
-      if: always()  # This ensures the step runs even if the previous steps fail
+    - if: ${{ matrix.os == 'ubuntu-latest' }}
+      name: Create the Badge
       uses: schneegans/dynamic-badges-action@v1.0.0
       with:
         auth: ${{ secrets.GIST_SECRET }}
         gistID: cdc60bed264cf5afd17e322cee8feee2
         filename: legalaid-backend__${{ env.BRANCH }}.json
         label: Test Coverage
-        message: ${{ env.COVERAGE }}
+        message: ${{ env.BACKEND_COVERAGE || '0%' }}
         color: green
         namedLogo: pytest
