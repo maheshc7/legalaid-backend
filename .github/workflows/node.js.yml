@@ -34,7 +34,7 @@ jobs:
       run: |
         coverage run -m pytest
         coverage report -m
-      working-directory: path/to/your/backend/code
+      working-directory: ".coverage.*"
 
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       name: Get Backend Coverage for badge
