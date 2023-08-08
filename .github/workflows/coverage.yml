@@ -1,0 +1,54 @@
+name: Build and Test
+
+on:
+  push:
+    # branches:
+    #   - main
+  pull_request:
+    # branches:
+    #   - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install backend dependencies
+      run: pip install -r requirements.txt
+      working-directory: .
+
+    - name: Run backend tests with coverage
+      run: |
+        coverage run -m pytest
+        coverage report
+      working-directory: .
+
+    - if: ${{ matrix.os == 'ubuntu-latest' }}
+      name: Get Backend Coverage for badge
+      run: |
+        SUMMARY="$(coverage report | grep TOTAL | awk '{print $4}')"
+        echo "BACKEND_COVERAGE=$(echo ${SUMMARY})" >> $GITHUB_ENV
+    - if: ${{ matrix.os == 'ubuntu-latest' }}
+      name: Create the Badge
+      uses: schneegans/dynamic-badges-action@v1.0.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: cdc60bed264cf5afd17e322cee8feee2
+        filename: legalaid-backend__${{ env.BRANCH }}.json
+        label: Test Coverage
+        message: ${{ env.BACKEND_COVERAGE || '0%' }}
+        color: green
+        namedLogo: pytest
