@@ -31,8 +31,8 @@ jobs:
     - name: Upload coverage report
       uses: actions/upload-artifact@v2
       with:
-        name: coverage-report
-        path: path/to/coverage/folder
+        name: coverage report
+        # path: .coverage
 
     - name: Get Coverage for badge
       if: always()  # This ensures the step runs even if the previous steps fail
