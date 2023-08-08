@@ -4,14 +4,19 @@ Handles the calls to make the Outlook API authentication
 Adds new events to the calendar.
 """
 
-import uuid
+import concurrent.futures
 import os
 import tempfile
-import concurrent.futures
-from flask import Flask, request, jsonify
-from pdfparser import PdfParser
+import uuid
+
+from flask import Flask, jsonify, request
+
+from app.pdfparser import PdfParser
 
 app = Flask(__name__)
+
+# Load environment variables from .env file
+# app.config["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 
 # Define a custom middleware function to handle CORS headers
@@ -104,7 +109,7 @@ def extract_details(file):
             event_details.append(data)
 
     #TODO: Eventually move it to a separate API endpoint. 
-    gpt_events = parser.get_gpt_events()
+    gpt_events = parser.get_gpt_events(False)
 
     details["case"] = case_details
     details["events"] = event_details

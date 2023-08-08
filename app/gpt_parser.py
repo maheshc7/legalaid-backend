@@ -1,10 +1,12 @@
-import os
 import json
-import openai
-# from dotenv import load_dotenv, find_dotenv
-# _ = load_dotenv(find_dotenv())
 
-openai.api_key  = os.getenv('OPENAI_API_KEY')
+import openai
+# from flask import current_app
+
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv())
+
+# openai.api_key  = current_app.config["OPENAI_API_KEY"]
 
 def get_completion(content, model="gpt-3.5-turbo"):
     """
