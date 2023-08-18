@@ -1,6 +1,5 @@
 import os
 from unittest.mock import Mock, MagicMock, patch
-from dotenv import load_dotenv
 import pytest
 import spacy
 from app.services.pdfparser import PdfParser
@@ -113,7 +112,6 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
     Test get_gpt_events function of PdfParser class when authorized.
     """
     app_mock = Mock()
-    # load_dotenv()
     app_mock.config = {"OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY")}
     mock_get_completion.return_value = [
         {
