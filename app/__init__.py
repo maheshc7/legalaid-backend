@@ -1,7 +1,12 @@
 # app/__init__.py
-
+import os
+from dotenv import load_dotenv
 from flask import Flask
 
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__)
+    load_dotenv() 
+    app.config['OPENAI_API_KEY'] = os.environ.get('OPENAI_API_KEY')
+    # Configure the app, register blueprints, etc.
 
-from app import controller
+    return app

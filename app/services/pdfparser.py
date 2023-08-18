@@ -7,7 +7,7 @@ import fitz
 import spacy
 from dateparser.search import search_dates
 
-import app.gpt_parser as gpt_parser
+import app.services.gpt_parser as gpt_parser
 
 
 class PdfParser:
@@ -66,8 +66,11 @@ class PdfParser:
             Returns:
                 The cleaned up string.
         """
+        
+        content = content.lower()
         content = re.sub(r"\n\s+", "\n ", content)
         content = re.sub(r"(\s\n)+", " \n", content)
+        content = re.sub(r"( +)", " ", content)
         content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]", "", content)
         content = re.sub(r"\d{1,2}\s\n", "", content)
         content = re.sub(r"(\W\d{1,2}\.\s)\n+", r"\n \1", content)
@@ -231,7 +234,7 @@ class PdfParser:
         except Exception as error:
             raise Exception("Error extracting events:", str(error)) from error
     
-    def get_gpt_events(self, is_authorized):
+    def get_gpt_events(self,app, is_authorized):
         """
         Returns the events and their corresponding dates
             Returns:
@@ -249,7 +252,7 @@ class PdfParser:
                 if nlp_dates:
                     content += line
 
-            gpt_events = gpt_parser.get_completion(content=content)
+            gpt_events = gpt_parser.get_completion(app, content)
             return gpt_events
         except Exception as error:
             raise Exception("Error extracting GPT events:", str(error)) from error

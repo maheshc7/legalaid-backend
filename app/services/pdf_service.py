@@ -3,14 +3,14 @@ import os
 import tempfile
 import uuid
 
-from app.pdfparser import PdfParser
+from app.services.pdfparser import PdfParser
 
 
 class PdfService:
     def __init__(self, file):
         self.file = file
 
-    def parse_pdf(self):
+    def parse_pdf(self, app):
         try:
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
                 self.file.save(temp_file.name)
@@ -18,7 +18,7 @@ class PdfService:
             parser = PdfParser(temp_file.name)
             case_details = parser.get_case_details()
             events = parser.get_events()
-            gpt_events = parser.get_gpt_events(False)
+            gpt_events = parser.get_gpt_events(app, False)
 
             event_details = []
             for event, subevent in events.items():
@@ -48,4 +48,5 @@ class PdfService:
             raise Exception("Error parsing PDF: ", str(error)) from error
         
         finally:
+            parser.close_pdf()
             os.remove(temp_file.name)
