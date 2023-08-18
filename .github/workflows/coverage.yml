@@ -1,7 +1,6 @@
 name: Build and Test
 
 on:
-  push:
   pull_request:
 
 jobs:
@@ -29,7 +28,7 @@ jobs:
     - name: Run backend tests with coverage
       run: |
         coverage run -m pytest
-        echo "$(coverage report)"
+        echo "$(coverage report -m)"
       working-directory: .
 
     - if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -40,9 +39,9 @@ jobs:
         REF=${{ github.ref }}
         IFS='/' read -ra PATHS <<< "$REF"
         BRANCH_NAME="${PATHS[1]}_${PATHS[2]}"
-        echo $BRANCH_NAME $IFS $REF
+        echo $BRANCH_NAME $IFS $REF $PATHS
         echo "BRANCH=$(echo ${BRANCH_NAME})" >> $GITHUB_ENV
-        echo "${{env.BRANCH}}"
+        echo "$BRANCH"
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       name: Create the Badge
       uses: schneegans/dynamic-badges-action@v1.0.0
