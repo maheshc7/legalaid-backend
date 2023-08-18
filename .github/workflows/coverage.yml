@@ -37,6 +37,12 @@ jobs:
       run: |
         SUMMARY="$(coverage report -m | grep TOTAL | awk '{print $4}')"
         echo "BACKEND_COVERAGE=$(echo ${SUMMARY})" >> $GITHUB_ENV
+        REF=${{ github.ref }}
+        IFS='/' read -ra PATHS <<< "$REF"
+        BRANCH_NAME="${PATHS[1]}_${PATHS[2]}"
+        echo $BRANCH_NAME $IFS $REF
+        echo "BRANCH=$(echo ${BRANCH_NAME})" >> $GITHUB_ENV
+        echo "${{env.BRANCH}}"
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       name: Create the Badge
       uses: schneegans/dynamic-badges-action@v1.0.0
