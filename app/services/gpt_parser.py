@@ -1,10 +1,9 @@
-import os
 import json
+
 import openai
+# from flask import current_app
 
-openai.api_key  = os.getenv('OPENAI_API_KEY')
-
-def get_completion(content, model="gpt-3.5-turbo"):
+def get_completion(app, content, model="gpt-3.5-turbo"):
     """
      Sends the scheduling order content to chatGPT model and retrieves the desired output in JSON.
 
@@ -14,7 +13,9 @@ def get_completion(content, model="gpt-3.5-turbo"):
     Returns:
         response (string): A string
     """
-    prompt = f"""
+    openai.api_key  = app.config["OPENAI_API_KEY"]
+
+    prompt = fr"""
     Extract the following details from the scheduling order for each procedure:
     - Procedure title (we will call this the subject)
     - Task to be carried out for that procedure (we will call this description)
@@ -32,7 +33,7 @@ def get_completion(content, model="gpt-3.5-turbo"):
     Each sentence will contain one or more dates and will describe a procedure or task or event.
     The subject should be a title for the procedure, specific for each procedure and not generic titles.
     The description should describe the procedure or task or event and the description brief and to the point. 
-    For each sentence describing a procedure and containing a date, \
+    For each sentence describing a procedure and containing a date,
     create a JSON item for that sentence with the above mentioned keys.
     If the sentence has two or more dates, create separate JSON item for each date. DO not skip any date.
     If the information isn't present, use blank values.
@@ -52,6 +53,7 @@ def get_completion(content, model="gpt-3.5-turbo"):
     )
     # TODO: Add error handling. Make sure it is in json format else retry.
     output = response.choices[0].message["content"]
+
     output = json.loads(output)
 
     return output
