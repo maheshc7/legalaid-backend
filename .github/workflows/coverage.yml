@@ -1,12 +1,7 @@
 name: Build and Test
 
 on:
-  push:
-    # branches:
-    #   - main
   pull_request:
-    # branches:
-    #   - main
 
 jobs:
   build:
@@ -24,11 +19,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.11
-    - name: Upgrade pip and setuptools
-      run: |
-        pip install --upgrade pip setuptools
-      working-directory: .
+        python-version: 3.8
 
     - name: Install backend dependencies
       run: pip install -r requirements-dev.txt
@@ -37,28 +28,20 @@ jobs:
     - name: Run backend tests with coverage
       run: |
         coverage run -m pytest
-        coverage report
+        echo "$(coverage report -m)"
       working-directory: .
 
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       name: Get Backend Coverage for badge
       run: |
-        SUMMARY="$(coverage report | grep TOTAL | awk '{print $4}')"
+        SUMMARY="$(coverage report -m | grep TOTAL | awk '{print $4}')"
         echo "BACKEND_COVERAGE=$(echo ${SUMMARY})" >> $GITHUB_ENV
-        
-        # var REF = 'refs/pull/27/merge.json';
         REF=${{ github.ref }}
-        # console.log('github.ref: ' + REF);
-        echo "github.ref: $REF"
-        # var PATHS = REF.split('/');
         IFS='/' read -ra PATHS <<< "$REF"
-        # var BRANCH_NAME = PATHS[1] + '_' + PATHS[2];
         BRANCH_NAME="${PATHS[1]}_${PATHS[2]}"
-        # console.log(BRANCH_NAME); // 'pull_27'
-        echo $BRANCH_NAME
-        # process.env.BRANCH = 'pull_27';
+        echo $BRANCH_NAME $IFS $REF $PATHS
         echo "BRANCH=$(echo ${BRANCH_NAME})" >> $GITHUB_ENV
-        
+        echo "$BRANCH"
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       name: Create the Badge
       uses: schneegans/dynamic-badges-action@v1.0.0
