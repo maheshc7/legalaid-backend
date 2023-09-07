@@ -66,8 +66,8 @@ class PdfParser:
             Returns:
                 The cleaned up string.
         """
-        
-        content = content.lower()
+
+        # content = content.lower()
         content = re.sub(r"\n\s+", "\n ", content)
         content = re.sub(r"(\s\n)+", " \n", content)
         content = re.sub(r"( +)", " ", content)
@@ -80,6 +80,80 @@ class PdfParser:
         content = re.sub("p.m.", "pm.", content)
         return content
 
+    def extract_parties_details(self, page):
+        """
+        Function to extract the plaintiff and defendant details.
+        Assumes that defendant details are followed by plaintiff details in the order.
+        """
+
+        # Get the last occurence of DEFENDANT in page
+        defendant_bbox = page.search_for("defendant")[-1]
+
+        # Set the top constraint Y0 by detecting words COUNTY/DISTRICT
+        top_half = fitz.Rect(0, 0, page.rect.width, page.rect.height / 2)
+        top_half = page.get_textpage(clip=top_half)
+        court_bbox = page.search_for("COURT", textpage=top_half)
+        court_bbox = sorted(court_bbox, key=lambda x: x.y1)[-1]
+        parties_y0 = court_bbox.y1 + 30
+        for term in ["COUNTY", "DISTRICT"]:
+            term_bbox = page.search_for(term, textpage=top_half)
+            if term_bbox:
+                parties_y0 = min(parties_y0, term_bbox[-1].y1)
+
+        # Find Case/No. For parties' boundary X1 and extracting Case number
+        case_clip = fitz.Rect(
+            page.rect.width / 2, parties_y0 + 20, page.rect.width, defendant_bbox.y0
+        )  # mid right
+        case_page = page.get_textpage(clip=case_clip)
+        case_detail = page.get_text(clip=case_clip).lower()
+        case_num = ""
+        match = re.search(r"(?:case no\.|case|no\.):?\s?([a-z]\S{5,})", case_detail)
+        if match:
+            case_num = match.group(1).replace(" ", "").upper()
+
+        # Find either CASE or NO. in the case_clip
+        case_1 = page.search_for("case", textpage=case_page)
+        case_2 = page.search_for("No.", textpage=case_page)
+
+        x0_values = [bbox[0].x0 for bbox in (case_1, case_2) if bbox]
+        case_clip.x1 = min(x0_values) if x0_values else page.rect.width / 1.75
+
+        # Crop the page to cover only the plaintiff and defendant bounding boxes
+        parties_clip = fitz.Rect(
+            50, parties_y0 + 20, case_clip.x1, defendant_bbox.y1
+        )  # mid left
+        parties_page = page.get_textpage(clip=parties_clip)
+        # Extract the text within the bounding box
+
+        # Now get the first instance of defendant within this box & zoom in
+        plaintiff_bbox = page.search_for("plaintiff", textpage=parties_page)[0]
+        defendant_bbox = page.search_for("defendant", textpage=parties_page)[0]
+        parties_clip.y1 = defendant_bbox.y1
+
+        # Separate the plaintiff and defendant details
+        plaintiff_bbox = fitz.Rect(
+            parties_clip.x0, parties_clip.y0, parties_clip.x1, plaintiff_bbox.y0
+        )
+        defendant_bbox = fitz.Rect(
+            parties_clip.x0, plaintiff_bbox.y1 + 20, parties_clip.x1, defendant_bbox.y0
+        )
+        plaintiff = page.get_text(clip=plaintiff_bbox)
+        defendant = page.get_text(clip=defendant_bbox)
+
+        # Extract COURT details
+        court_bbox = fitz.Rect(
+            50, court_bbox.y0, page.rect.width, parties_y0
+        )  # parties_clip.y0 - 20)
+        court_details = page.get_text(clip=court_bbox)
+        print(court_bbox, court_details)
+
+        return (
+            case_num,
+            self.clean_pdf(court_details),
+            self.clean_pdf(plaintiff),
+            self.clean_pdf(defendant),
+        )
+
     def get_case_details(self):
         """
         Extracts the details of the case
@@ -88,19 +162,11 @@ class PdfParser:
                 TODO: Extract plaintiff & defendant name, county, attorney assigned etc.
         """
         try:
-            court = "Arizona Superior Maricopa County"
-            plaintiff = "Saul Goodman"
-            defendant = "Harvey Specter"
             # Extracts information regarding the case
             page = self.file.load_page(0)
-            # extracting text from page
-            content = page.get_text().lower()
-            match = re.search(r"(?:case no\.|case|no\.):?\s?([a-z]\w{5,})", content)
-            if match:
-                case_num = match.group(1).replace(" ", "").upper()
-            else:
-                case_num = ""
-            
+
+            case_num, court, plaintiff, defendant = self.extract_parties_details(page)
+
             case_info = {
                 "caseNum": case_num,
                 "court": court,
@@ -110,7 +176,6 @@ class PdfParser:
             return case_info
         except Exception as error:
             raise Exception("Error extracting case details:", str(error)) from error
-
 
     def extract_task(self, sentence):
         """
@@ -123,7 +188,7 @@ class PdfParser:
         If so, it includes all the tokens in the subtree of the current token as part of the task.
         Otherwise, it just includes the current token as part of the task.
 
-        If the extracted task is just a single word or has more than 15 words we return the sentence itself.
+        If the extracted task is just a single word or has more than 15 words return the sentence.
 
         Parameter:
             sentence (string): A string
@@ -170,7 +235,10 @@ class PdfParser:
                     # print the text and label of the date entity
                     date = search_dates(
                         ent.text,
-                        settings={"STRICT_PARSING": False, "PARSERS": ["absolute-time"]},
+                        settings={
+                            "STRICT_PARSING": False,
+                            "PARSERS": ["absolute-time"],
+                        },
                     )
                     if date:
                         dates.append(date[0])
@@ -187,15 +255,17 @@ class PdfParser:
         try:
             events = {}
             event = ""
-            content = self.clean_pdf(self.content)
+            content = self.clean_pdf(self.content.lower())
             events["no event"] = {}
             paragraphs = re.split("\n", content)
             for para in paragraphs:
                 para = self.clean_pdf(para)
-                new_events = re.findall("(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", para)
+                new_events = re.findall(r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", para)
                 if new_events:
                     para = re.sub(r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", r"\1:", para)
-                new_event = re.search(r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", para)
+                new_event = re.search(
+                    r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", para
+                )
                 para = re.sub(r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", "", para)
                 if new_event:
                     event = new_event.group(1)
@@ -233,8 +303,8 @@ class PdfParser:
             return events
         except Exception as error:
             raise Exception("Error extracting events:", str(error)) from error
-    
-    def get_gpt_events(self,app, is_authorized):
+
+    def get_gpt_events(self, is_authorized):
         """
         Returns the events and their corresponding dates
             Returns:
@@ -252,8 +322,7 @@ class PdfParser:
                 if nlp_dates:
                     content += line
 
-            gpt_events = gpt_parser.get_completion(app, content)
+            gpt_events = gpt_parser.get_completion(content)
             return gpt_events
         except Exception as error:
             raise Exception("Error extracting GPT events:", str(error)) from error
-                

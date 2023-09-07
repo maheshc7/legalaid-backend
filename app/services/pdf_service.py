@@ -7,10 +7,19 @@ from app.services.pdfparser import PdfParser
 
 
 class PdfService:
+    """
+    Service class for PdfParser
+    """
+
     def __init__(self, file):
         self.file = file
 
-    def parse_pdf(self, app):
+    def parse_pdf(self):
+        """
+        Creates a temporary file for the passed file and calls PdfParser on this file
+        Extracts the case details, events and gpt_events if authorized
+        TODO: Gpt authorization is hardcoded to False, will create a separate endpoint for it.
+        """
         try:
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
                 self.file.save(temp_file.name)
@@ -18,7 +27,7 @@ class PdfService:
             parser = PdfParser(temp_file.name)
             case_details = parser.get_case_details()
             events = parser.get_events()
-            gpt_events = parser.get_gpt_events(app, False)
+            gpt_events = parser.get_gpt_events(False)
 
             event_details = []
             for event, subevent in events.items():
@@ -46,7 +55,7 @@ class PdfService:
 
         except Exception as error:
             raise Exception("Error parsing PDF: ", str(error)) from error
-        
+
         finally:
             parser.close_pdf()
             os.remove(temp_file.name)

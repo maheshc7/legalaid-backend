@@ -55,7 +55,7 @@ def test_clean_pdf(pdf_parser):
     Test clean_pdf function of PdfParser class.
     """
     content = """This is some text with\n\n\nnewlines and     spaces."""
-    expected_result = "this is some text with\n newlines and spaces."
+    expected_result = "This is some text with\n newlines and spaces."
     result = pdf_parser.clean_pdf(content)
     assert result == expected_result
 
@@ -64,9 +64,9 @@ def test_get_case_details(pdf_parser):
     """
     Test get_case_details function of PdfParser class.
     """
-    mock_page = Mock()
-    mock_page.get_text.return_value = "case no.: C123846"
-    pdf_parser.file.load_page = Mock(return_value=mock_page)
+    # mock_page = Mock()
+    mock_page = ["C123846", "Arizona Superior Maricopa County", "Saul Goodman", "Harvey Specter"]
+    pdf_parser.extract_parties_details = Mock(return_value=mock_page)
 
     expected_result = {
         "caseNum": "C123846",
@@ -83,9 +83,11 @@ def test_get_events(pdf_parser):
     Test get_events function of PdfParser class.
     """
     # Mock the content and spacy
-    pdf_parser.content = pdf_parser.clean_pdf("""1. Initial disclosures: The parties’ initial disclosures shall be completed by July 1, 2022.\n\
+    pdf_parser.content = pdf_parser.clean_pdf(
+        """1. Initial disclosures: The parties’ initial disclosures shall be completed by July 1, 2022.\n\
     2. Private mediation. The  parties  shall  participate  in  mediation  using  a  private mediator  agreed  to  by  the  parties.\
-    The  parties  shall  complete  mediation  by  December  30, 2022.""")
+    The  parties  shall  complete  mediation  by  December  30, 2022."""
+    )
 
     result = pdf_parser.get_events()
     print(result)
@@ -99,9 +101,8 @@ def test_get_gpt_events_unauthorized(pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when unauthorized.
     """
-    app_mock = Mock()
 
-    result = pdf_parser.get_gpt_events(app_mock, False)
+    result = pdf_parser.get_gpt_events(False)
 
     assert result == "Not Authorized to use GPT"
 
@@ -111,8 +112,6 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when authorized.
     """
-    app_mock = Mock()
-    app_mock.config = {"OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY")}
     mock_get_completion.return_value = [
         {
             "date": "2022-07-01",
@@ -131,7 +130,7 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
         },
     ]
 
-    result = pdf_parser.get_gpt_events(app_mock, True)
+    result = pdf_parser.get_gpt_events(True)
     assert isinstance(result, list)
     for event in result:
         assert isinstance(event, dict)
@@ -140,12 +139,12 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
         assert "subject" in event
 
 
-def test_get_gpt_events_invalid_key(pdf_parser):
+@patch("app.services.gpt_parser.config", autospec=True)
+def test_get_gpt_events_invalid_key(mock_config, pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when unauthorized.
     """
-    app_mock = Mock()
-    app_mock.config = {"OPENAI_API_KEY": "invalid_key"}
+    mock_config.OPENAI_API_KEY = "invalid_key"
     with patch(
         "app.services.pdfparser.gpt_parser.get_completion"
     ) as mock_get_completion:
@@ -153,7 +152,7 @@ def test_get_gpt_events_invalid_key(pdf_parser):
             "Incorrect API key provided: invalid_key"
         )
         with pytest.raises(Exception) as exc_info:
-            pdf_parser.get_gpt_events(app_mock, is_authorized=True)
+            pdf_parser.get_gpt_events(is_authorized=True)
 
         assert "Error extracting GPT events:" in str(exc_info.value)
         assert "Incorrect API key provided: invalid_key" in str(exc_info.value)
