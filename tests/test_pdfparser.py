@@ -1,7 +1,6 @@
-import os
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 import pytest
-import spacy
+import fitz
 from app.services.pdfparser import PdfParser
 
 
@@ -13,6 +12,13 @@ def pdf_parser():
     parser = PdfParser("./Sample Files/Posner -  Scheduling Order.pdf")
     # parser.nlp = MagicMock()
     return parser
+
+
+@pytest.fixture
+def pdf_page(pdf_parser):
+    # This fixture can be used to create a mock PDF page for testing
+    # You can customize it based on your actual needs
+    return pdf_parser.file.load_page(0)
 
 
 # def test_read_pdf(pdf_parser):
@@ -65,7 +71,12 @@ def test_get_case_details(pdf_parser):
     Test get_case_details function of PdfParser class.
     """
     # mock_page = Mock()
-    mock_page = ["C123846", "Arizona Superior Maricopa County", "Saul Goodman", "Harvey Specter"]
+    mock_page = [
+        "C123846",
+        "Arizona Superior Maricopa County",
+        "Saul Goodman",
+        "Harvey Specter",
+    ]
     pdf_parser.extract_parties_details = Mock(return_value=mock_page)
 
     expected_result = {
@@ -158,4 +169,39 @@ def test_get_gpt_events_invalid_key(mock_config, pdf_parser):
         assert "Incorrect API key provided: invalid_key" in str(exc_info.value)
 
 
-# Add more test functions...
+def test_find_court_bbox(pdf_parser, pdf_page):
+    top_half = pdf_page.get_textpage(clip=pdf_page.rect)
+    court_bbox = pdf_parser.find_court_bbox(pdf_page, top_half)
+    assert isinstance(court_bbox, fitz.Rect)
+
+
+def test_find_parties_y0(pdf_parser, pdf_page):
+    top_half = pdf_page.get_textpage(clip=pdf_page.rect)
+    court_bbox = pdf_parser.find_court_bbox(pdf_page, top_half)
+    parties_y0 = pdf_parser.find_parties_y0(pdf_page, court_bbox, top_half)
+    assert isinstance(parties_y0, (int, float))
+
+
+def test_find_case_x0_values(pdf_parser, pdf_page):
+    case_page = pdf_page.get_textpage(clip=pdf_page.rect)
+    x0_values = pdf_parser.find_case_x0_values(pdf_page, case_page)
+    assert isinstance(x0_values, list)
+
+
+def test_extract_case_number(pdf_parser):
+    case_detail = "Case No.: ABC123"
+    case_num = pdf_parser.extract_case_number(case_detail.lower())
+    assert case_num == "ABC123"
+
+
+def test_extract_case_and_parties(pdf_parser, pdf_page):
+    top_half = pdf_page.get_textpage(clip=pdf_page.rect)
+    court_bbox = pdf_parser.find_court_bbox(pdf_page, top_half)
+    parties_y0 = pdf_parser.find_parties_y0(pdf_page, court_bbox, top_half)
+    case_num, court_details, plaintiff, defendant = pdf_parser.extract_parties_details(
+        pdf_page
+    )
+    assert isinstance(case_num, str)
+    assert isinstance(court_details, str)
+    assert isinstance(plaintiff, str)
+    assert isinstance(defendant, str)
