@@ -94,13 +94,13 @@ class PdfParser:
             top_half = fitz.Rect(0, 0, page.rect.width, page.rect.height / 2)
             top_half = page.get_textpage(clip=top_half)
 
-            court_bbox = self.find_court_bbox(page, top_half)
-            parties_y0 = self.find_parties_y0(page, court_bbox, top_half)
+            court_bbox = self._find_court_bbox(page, top_half)
+            parties_y0 = self._find_parties_y0(page, court_bbox, top_half)
 
             court_bbox = fitz.Rect(50, court_bbox.y0, page.rect.width, parties_y0)
             court_details = self.clean_pdf(page.get_text(clip=court_bbox))
 
-            case_num, plaintiff, defendant = self.extract_case_and_parties(
+            case_num, plaintiff, defendant = self._extract_case_and_parties(
                 page, parties_y0
             )
 
@@ -108,7 +108,7 @@ class PdfParser:
         except Exception as error:
             raise Exception("Error extracting parties details:", str(error))
 
-    def find_court_bbox(self, page, top_half):
+    def _find_court_bbox(self, page, top_half):
         """
         Find the bounding box of the court section.
 
@@ -126,7 +126,7 @@ class PdfParser:
         except Exception as error:
             raise Exception("Error finding court bounding box:", str(error))
 
-    def find_parties_y0(self, page, court_bbox, top_half):
+    def _find_parties_y0(self, page, court_bbox, top_half):
         """
         Find the Y0 coordinate for the parties' section.
 
@@ -148,7 +148,7 @@ class PdfParser:
         except Exception as error:
             raise Exception("Error finding parties Y0 coordinate:", str(error))
 
-    def find_case_x0_values(self, page, case_page):
+    def _find_case_x0_values(self, page, case_page):
         """
         Find the x0 value of the case detail box.
 
@@ -169,7 +169,7 @@ class PdfParser:
         except Exception as error:
             raise Exception("Error finding case x0 values:", str(error))
 
-    def extract_case_number(self, case_detail):
+    def _extract_case_number(self, case_detail):
         """
         Extract the case number using regex.
 
@@ -188,7 +188,7 @@ class PdfParser:
         except Exception as error:
             raise Exception("Error extracting case number:", str(error))
 
-    def extract_case_and_parties(self, page, parties_y0):
+    def _extract_case_and_parties(self, page, parties_y0):
         """
         Extract case number, plaintiff, and defendant.
 
@@ -206,10 +206,10 @@ class PdfParser:
                 page.rect.width / 2, parties_y0 + 20, page.rect.width, defendant_bbox.y0
             )  # mid right
             case_detail = page.get_text(clip=case_clip).lower()
-            case_num = self.extract_case_number(case_detail)
+            case_num = self._extract_case_number(case_detail)
 
             case_page = page.get_textpage(clip=case_clip)
-            x0_values = self.find_case_x0_values(page, case_page)
+            x0_values = self._find_case_x0_values(page, case_page)
             case_clip.x1 = min(x0_values) if x0_values else page.rect.width / 1.75
 
             parties_clip = fitz.Rect(

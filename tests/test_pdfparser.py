@@ -171,33 +171,33 @@ def test_get_gpt_events_invalid_key(mock_config, pdf_parser):
 
 def test_find_court_bbox(pdf_parser, pdf_page):
     top_half = pdf_page.get_textpage(clip=pdf_page.rect)
-    court_bbox = pdf_parser.find_court_bbox(pdf_page, top_half)
+    court_bbox = pdf_parser._find_court_bbox(pdf_page, top_half)
     assert isinstance(court_bbox, fitz.Rect)
 
 
 def test_find_parties_y0(pdf_parser, pdf_page):
     top_half = pdf_page.get_textpage(clip=pdf_page.rect)
-    court_bbox = pdf_parser.find_court_bbox(pdf_page, top_half)
-    parties_y0 = pdf_parser.find_parties_y0(pdf_page, court_bbox, top_half)
+    court_bbox = pdf_parser._find_court_bbox(pdf_page, top_half)
+    parties_y0 = pdf_parser._find_parties_y0(pdf_page, court_bbox, top_half)
     assert isinstance(parties_y0, (int, float))
 
 
 def test_find_case_x0_values(pdf_parser, pdf_page):
     case_page = pdf_page.get_textpage(clip=pdf_page.rect)
-    x0_values = pdf_parser.find_case_x0_values(pdf_page, case_page)
+    x0_values = pdf_parser._find_case_x0_values(pdf_page, case_page)
     assert isinstance(x0_values, list)
 
 
 def test_extract_case_number(pdf_parser):
     case_detail = "Case No.: ABC123"
-    case_num = pdf_parser.extract_case_number(case_detail.lower())
+    case_num = pdf_parser._extract_case_number(case_detail.lower())
     assert case_num == "ABC123"
 
 
 def test_extract_case_and_parties(pdf_parser, pdf_page):
     top_half = pdf_page.get_textpage(clip=pdf_page.rect)
-    court_bbox = pdf_parser.find_court_bbox(pdf_page, top_half)
-    parties_y0 = pdf_parser.find_parties_y0(pdf_page, court_bbox, top_half)
+    court_bbox = pdf_parser._find_court_bbox(pdf_page, top_half)
+    parties_y0 = pdf_parser._find_parties_y0(pdf_page, court_bbox, top_half)
     case_num, court_details, plaintiff, defendant = pdf_parser.extract_parties_details(
         pdf_page
     )
