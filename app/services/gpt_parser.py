@@ -1,9 +1,9 @@
 import json
-
 import openai
-# from flask import current_app
+from app import config
 
-def get_completion(app, content, model="gpt-3.5-turbo"):
+
+def get_completion(content, model="gpt-3.5-turbo"):
     """
      Sends the scheduling order content to chatGPT model and retrieves the desired output in JSON.
 
@@ -13,9 +13,9 @@ def get_completion(app, content, model="gpt-3.5-turbo"):
     Returns:
         response (string): A string
     """
-    openai.api_key  = app.config["OPENAI_API_KEY"]
+    openai.api_key = config.OPENAI_API_KEY
 
-    prompt = fr"""
+    prompt = rf"""
     Extract the following details from the scheduling order for each procedure:
     - Procedure title (we will call this the subject)
     - Task to be carried out for that procedure (we will call this description)
@@ -43,13 +43,13 @@ def get_completion(app, content, model="gpt-3.5-turbo"):
     """
 
     messages = [
-        {'role': 'system', 'content': 'You are a legal assistant.'},
-        {"role": "user", "content": prompt}
-        ]
+        {"role": "system", "content": "You are a legal assistant."},
+        {"role": "user", "content": prompt},
+    ]
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
-        temperature=0, # this is the degree of randomness of the model's output
+        temperature=0,  # this is the degree of randomness of the model's output
     )
     # TODO: Add error handling. Make sure it is in json format else retry.
     output = response.choices[0].message["content"]
