@@ -35,7 +35,7 @@ class PdfParser:
             self.nlp = spacy.load("en_core_web_sm")
             # creating a pdf file object
             self.file = fitz.open(filepath, filetype="pdf")
-            self.content = self.__read_pdf().lower()
+            self.content = self.__read_pdf()#.lower()
         except Exception as error:
             raise Exception("Error initializing PdfParser:", str(error)) from error
 
@@ -93,13 +93,11 @@ class PdfParser:
         try:
             top_half = fitz.Rect(0, 0, page.rect.width, page.rect.height / 2)
             top_half = page.get_textpage(clip=top_half)
-
             court_bbox = self._find_court_bbox(page, top_half)
             parties_y0 = self._find_parties_y0(page, court_bbox, top_half)
 
             court_bbox = fitz.Rect(50, court_bbox.y0, page.rect.width, parties_y0)
-            court_details = self.clean_pdf(page.get_text(clip=court_bbox))
-
+            court_details = self.clean_pdf(page.get_text(clip=court_bbox)).title()
             case_num, plaintiff, defendant = self._extract_case_and_parties(
                 page, parties_y0
             )
@@ -120,9 +118,10 @@ class PdfParser:
             fitz.Rect: The bounding box of the court section.
         """
         try:
-            court_bbox = page.search_for("COURT", textpage=top_half)
-            court_bbox = sorted(court_bbox, key=lambda x: x.y1)[-1]
-            return court_bbox
+            court_bbox = page.search_for("superior court", textpage=top_half)
+            court_bbox += page.search_for("district court", textpage=top_half)
+            court_bbox = sorted(court_bbox, key=lambda x: x.y1)
+            return court_bbox[-1]
         except Exception as error:
             raise Exception("Error finding court bounding box:", str(error))
 
@@ -181,10 +180,14 @@ class PdfParser:
         """
         try:
             case_num = ""
-            match = re.search(r"(?:case no\.|case|no\.):?\s?([a-z]\S{5,})", case_detail)
-            if match:
-                case_num = match.group(1).replace(" ", "").upper()
-            return self.clean_pdf(case_num)
+            case_detail = case_detail.splitlines()
+            for line in case_detail:
+                line = re.split(r"case no\.|case|no\.:?\s?", line)[-1]
+                line = line.replace(" ", "")
+                match = re.search(r"([a-z]\S{5,})", line)
+                if match:
+                    case_num = match.group(1).replace(" ", "").upper()
+                    return self.clean_pdf(case_num)
         except Exception as error:
             raise Exception("Error extracting case number:", str(error))
 
@@ -230,8 +233,8 @@ class PdfParser:
                 parties_clip.x1,
                 defendant_bbox.y0,
             )
-            plaintiff = self.clean_pdf(page.get_text(clip=plaintiff_bbox))
-            defendant = self.clean_pdf(page.get_text(clip=defendant_bbox))
+            plaintiff = self.clean_pdf(page.get_text(clip=plaintiff_bbox)).title()
+            defendant = self.clean_pdf(page.get_text(clip=defendant_bbox)).title()
 
             return case_num, plaintiff, defendant
         except Exception as error:
@@ -252,6 +255,7 @@ class PdfParser:
             case_info = {
                 "caseNum": case_num,
                 "court": court,
+                "client": "",
                 "plaintiff": plaintiff,
                 "defendant": defendant,
             }
@@ -259,7 +263,7 @@ class PdfParser:
         except Exception as error:
             raise Exception("Error extracting case details:", str(error)) from error
 
-    def extract_task(self, sentence):
+    def extract_task(self, sentence): 
         """
         This algorithm uses the spaCy library to tokenize and parse the input sentence.
         First identifies the action verb in the sentence by finding the first verb in the sentence.
@@ -307,6 +311,7 @@ class PdfParser:
         Extract the dates using spacy library
         """
         # process the text with spaCy
+        text = text.title()
         try:
             doc = self.nlp(text)
             dates = []
@@ -320,6 +325,7 @@ class PdfParser:
                         settings={
                             "STRICT_PARSING": False,
                             "PARSERS": ["absolute-time"],
+                            "REQUIRE_PARTS": ['day', 'month', 'year']
                         },
                     )
                     if date:
@@ -337,7 +343,7 @@ class PdfParser:
         try:
             events = {}
             event = ""
-            content = self.clean_pdf(self.content.lower())
+            content = self.clean_pdf(self.content)#.lower())
             events["no event"] = {}
             paragraphs = re.split("\n", content)
             for para in paragraphs:
@@ -365,7 +371,7 @@ class PdfParser:
                         re_dates = []
 
                     dates = nlp_dates if (len(nlp_dates) > len(re_dates)) else re_dates
-
+                    print(re_dates, nlp_dates)
                     if not event:
                         event = "no event"
 
