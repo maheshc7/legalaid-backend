@@ -79,6 +79,14 @@ class PdfParser:
         content = re.sub("a.m.", "am.", content)
         content = re.sub("p.m.", "pm.", content)
         return content
+    
+    def extract_meaningful_words(self, text):
+    # Process the text with SpaCy
+        doc = self.nlp(text)
+
+        meaningful_words = [token.text for token in doc if token.pos_ in {"NOUN", "ADJ", "VERB", "PROPN"}]
+
+        return " ".join(meaningful_words)
 
     def extract_parties_details(self, page):
         """
@@ -254,10 +262,10 @@ class PdfParser:
 
             case_info = {
                 "caseNum": case_num,
-                "court": court,
+                "court": self.extract_meaningful_words(court),
                 "client": "",
-                "plaintiff": plaintiff,
-                "defendant": defendant,
+                "plaintiff": self.extract_meaningful_words(plaintiff),
+                "defendant": self.extract_meaningful_words(defendant),
             }
             return case_info
         except Exception as error:
