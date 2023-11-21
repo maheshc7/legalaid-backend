@@ -26,6 +26,7 @@ class PdfService:
 
             parser = PdfParser(temp_file.name)
             case_details = parser.get_case_details()
+
             event_details = []
             if is_authorized:
                 # event_details = parser.get_gpt_events(is_authorized)
