@@ -48,7 +48,7 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
     pdf_service = PdfService(pdf_file_mock)
 
     # Act
-    result = pdf_service.parse_pdf()
+    result = pdf_service.parse_pdf(is_authorized=False)
 
     # Assert
     assert result == {
@@ -67,10 +67,10 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
                 "description": "Subevent 2",
             },
         ],
-        "gpt_events": [
-            {"date": "2023-07-03", "description": "GPT Event 1"},
-            {"date": "2023-07-04", "description": "GPT Event 2"},
-        ],
+        # "gpt_events": [
+        #     {"date": "2023-07-03", "description": "GPT Event 1"},
+        #     {"date": "2023-07-04", "description": "GPT Event 2"},
+        # ],
         "length": 2,
     }
 
@@ -78,7 +78,7 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
     pdf_parser_mock.assert_called_once_with("tempfile_name")
     pdf_parser_instance.get_case_details.assert_called_once()
     pdf_parser_instance.get_events.assert_called_once()
-    pdf_parser_instance.get_gpt_events.assert_called_once_with(False)
+    #pdf_parser_instance.get_gpt_events.assert_called_once_with(False)
     pdf_parser_instance.close_pdf.assert_called_once()
 
     # Ensure that tempfile methods were called

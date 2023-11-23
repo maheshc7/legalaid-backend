@@ -537,7 +537,6 @@ class PdfParser:
                         re_dates = []
 
                     dates = nlp_dates if (len(nlp_dates) > len(re_dates)) else re_dates
-                    print(re_dates, nlp_dates)
                     if not event:
                         event = "no event"
 

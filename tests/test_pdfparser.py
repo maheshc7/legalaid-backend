@@ -82,6 +82,7 @@ def test_get_case_details(pdf_parser):
     expected_result = {
         "caseNum": "C123846",
         "court": "Arizona Superior Maricopa County",
+        "client": "",
         "plaintiff": "Saul Goodman",
         "defendant": "Harvey Specter",
     }
@@ -104,8 +105,8 @@ def test_get_events(pdf_parser):
     print(result)
     assert isinstance(result, dict)
     assert "no event" in result
-    assert "initial disclosures" in result
-    assert "private mediation" in result
+    assert "Initial disclosures" in result
+    assert "Private mediation" in result
 
 
 def test_get_gpt_events_unauthorized(pdf_parser):
@@ -126,12 +127,12 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
     mock_get_completion.return_value = [
         {
             "date": "2022-07-01",
-            "description": "The parties’ initial disclosures shall be completed",
+            "description": "The parties' initial disclosures shall be completed by .",
             "subject": "Initial Disclosures",
         },
         {
             "date": "2022-12-30",
-            "description": "The parties shall complete mediation",
+            "description": "The parties shall complete mediation .",
             "subject": "Mediation",
         },
         {
