@@ -29,13 +29,8 @@ class PdfService:
 
             event_details = []
             if is_authorized:
-                # event_details = parser.get_gpt_events(is_authorized)
-                event_details.append({
-                            "id": "1234",
-                            "subject": "AI Subject",
-                            "date": "2023-11-11",
-                            "description": "AI Description.",
-                        })
+                event_details = parser.get_gpt_events(is_authorized)
+
             else:
                 events = parser.get_events()
                 for event, subevent in events.items():

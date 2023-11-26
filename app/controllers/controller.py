@@ -37,10 +37,11 @@ def upload_file():
         file = request.files["file"]
         if not file.filename.lower().endswith(".pdf"):
             return (
-                jsonify({"error": "Invalid file format, only PDF files are allowed"}),
+                jsonify(
+                    {"error": "Invalid file format, only PDF files are allowed"}),
                 400,
             )
-        
+
         is_authorized = False
         if "data" in request.form:
             request_data = json.loads(request.form.get('data'))
