@@ -14,7 +14,7 @@ class PdfService:
     def __init__(self, file):
         self.file = file
 
-    def parse_pdf(self):
+    def parse_pdf(self, is_authorized):
         """
         Creates a temporary file for the passed file and calls PdfParser on this file
         Extracts the case details, events and gpt_events if authorized
@@ -26,28 +26,30 @@ class PdfService:
 
             parser = PdfParser(temp_file.name)
             case_details = parser.get_case_details()
-            events = parser.get_events()
-            gpt_events = parser.get_gpt_events(False)
 
             event_details = []
-            for event, subevent in events.items():
-                if event == "no event":
-                    continue
-                event = event.title()
-                for task, date in subevent.items():
-                    task = task.capitalize()
-                    data = {
-                        "id": str(uuid.uuid4()),
-                        "subject": event,
-                        "date": str(date.date()),
-                        "description": task,
-                    }
-                    event_details.append(data)
+            if is_authorized:
+                event_details = parser.get_gpt_events(is_authorized)
+
+            else:
+                events = parser.get_events()
+                for event, subevent in events.items():
+                    if event == "no event":
+                        continue
+                    event = event.title()
+                    for task, date in subevent.items():
+                        task = task.capitalize()
+                        data = {
+                            "id": str(uuid.uuid4()),
+                            "subject": event,
+                            "date": str(date.date()),
+                            "description": task,
+                        }
+                        event_details.append(data)
 
             details = {
                 "case": case_details,
                 "events": event_details,
-                "gpt_events": gpt_events,
                 "length": len(event_details),
             }
 

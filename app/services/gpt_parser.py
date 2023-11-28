@@ -46,6 +46,7 @@ def get_completion(content, model="gpt-3.5-turbo"):
         {"role": "system", "content": "You are a legal assistant."},
         {"role": "user", "content": prompt},
     ]
+    '''
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
@@ -55,5 +56,13 @@ def get_completion(content, model="gpt-3.5-turbo"):
     output = response.choices[0].message["content"]
 
     output = json.loads(output)
+    '''
+
+    output = [{
+        "id": "1234",
+        "subject": "AI Subject",
+        "date": "2023-11-11",
+        "description": "AI Description.",
+    }]
 
     return output
