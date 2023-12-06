@@ -46,10 +46,19 @@ class PdfParser:
         """
         # Using PyMuPDF - fitz library to crop
         try:
+            page_0 = self.file[0]
+            blocks = page_0.get_text("blocks")
+            block_list = sorted(
+                (block for block in blocks if block[1] >
+                 10 and block[2] < 100 and block[6] == 0),
+                key=lambda x: (x[0], -x[1]))
+            x0_crop = block_list[0][2]  # check content and
+            cropbox = fitz.Rect(x0_crop, 30, page_0.rect.width,
+                                page_0.rect.height)
             content = ""
             for page_num in range(self.file.page_count):
                 page = self.file.load_page(page_num)
-                text = page.get_text()
+                text = page.get_text(clip=cropbox, sort=True)
                 content += text
             return content
         except Exception as error:
@@ -74,12 +83,12 @@ class PdfParser:
         content = re.sub(r"(\s\n)+", " \n", content)
         content = re.sub(r"( +)", " ", content)
         content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]", "", content)
-        content = re.sub(r"\d{1,2}\s\n", "", content)
+        # content = re.sub(r"\d{1,2}\s\n", "", content)
         content = re.sub(r"(\W\d{1,2}\.\s)\n+", r"\n \1", content)
         content = re.sub(r"\n(\d{1,2}\.)", r"\n \1", content)
-        content = re.sub(r"\n(\S+?)", r"\1", content)
-        content = re.sub("a.m.", "am.", content)
-        content = re.sub("p.m.", "pm.", content)
+        content = re.sub(r"\n(\S+?)", r" \1", content)
+        content = re.sub("a.m.", "am", content)
+        content = re.sub("p.m.", "pm", content)
         return content
 
     def extract_meaningful_words(self, text):
@@ -195,10 +204,11 @@ class PdfParser:
             case_num = ""
             case_detail = case_detail.splitlines()
             for line in case_detail:
-                line = re.split(r"case no\.|case|no\.:?\s?", line)[-1]
+                case_list = re.split(r"case no\.|case|no\.:?\s?", line)
+                line = case_list[-1]
                 line = line.replace(" ", "")
                 match = re.search(r"([a-z]\S{5,})", line)
-                if match:
+                if len(case_list) > 1 and match:
                     case_num = match.group(1).replace(" ", "").upper()
                     return self.clean_pdf(case_num)
         except Exception as error:
@@ -369,16 +379,22 @@ class PdfParser:
             paragraphs = re.split("\n", content)
             for para in paragraphs:
                 para = self.clean_pdf(para)
+
+                head = para.split(".")
+                head = head[0]+"."+head[1]+"." if len(head) > 2 else para
+                head = para if len(head) < 10 else head
+
                 new_events = re.findall(
-                    r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", para)
+                    r"(\d{1,2}\.[A-Za-z0-9()\-\, ]+)(?:\.|\:)", head)
+
                 if new_events:
                     para = re.sub(
-                        r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", r"\1:", para)
+                        r"(\d{1,2}\.[A-Za-z0-9()\-\, ]+)(?:\.|\:)", r"\1.", para, 1)
+
                 new_event = re.search(
-                    r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", para
+                    r"\d{1,2}\. *([A-Za-z0-9()\-\, ]{10,})(?:\:|\.)", head
                 )
-                para = re.sub(
-                    r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", "", para)
+
                 if new_event:
                     event = new_event.group(1)
                     events[event] = {}
@@ -386,15 +402,16 @@ class PdfParser:
                 sentences = self.nlp(para.strip())
                 for line in sentences.sents:
                     line = line.text.strip()
+                    line = re.sub(r'[^0-9a-zA-Z\s\(\)\-:]+', ' ', line)
                     re_dates = search_dates(
                         line,
                         settings={"STRICT_PARSING": True,
                                   "PARSERS": ["absolute-time"]},
                     )
                     nlp_dates = self.extract_date(line)
+
                     if not re_dates:
                         re_dates = []
-
                     dates = nlp_dates if (
                         len(nlp_dates) > len(re_dates)) else re_dates
                     if not event:
