@@ -38,7 +38,7 @@ class PdfService:
                         continue
                     event = event.title()
                     for task, date in subevent.items():
-                        task = task.capitalize()
+                        # task = task.capitalize()
                         data = {
                             "id": str(uuid.uuid4()),
                             "subject": event,

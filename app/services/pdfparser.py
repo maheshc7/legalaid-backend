@@ -54,7 +54,7 @@ class PdfParser:
                 key=lambda x: (x[0], -x[1]))
             x0_crop = block_list[0][2]  # check content and
             cropbox = fitz.Rect(x0_crop, 30, page_0.rect.width,
-                                page_0.rect.height)
+                                page_0.rect.height-30)
             content = ""
             for page_num in range(self.file.page_count):
                 page = self.file.load_page(page_num)
@@ -376,7 +376,7 @@ class PdfParser:
             event = ""
             content = self.clean_pdf(self.content)  # .lower())
             events["no event"] = {}
-            paragraphs = re.split("\n", content)
+            paragraphs = content.splitlines()
             for para in paragraphs:
                 para = self.clean_pdf(para)
 
@@ -402,7 +402,7 @@ class PdfParser:
                 sentences = self.nlp(para.strip())
                 for line in sentences.sents:
                     line = line.text.strip()
-                    line = re.sub(r'[^0-9a-zA-Z\s\(\)\-:]+', ' ', line)
+                    line = re.sub(r'\s*[^0-9a-zA-Z\s\(\)\-:]+\s*', ' ', line)
                     re_dates = search_dates(
                         line,
                         settings={"STRICT_PARSING": True,
@@ -422,8 +422,10 @@ class PdfParser:
                             lines = [line]
                             if len(dates) > 1:
                                 lines = line.split(date[0])
-                            new_line = lines[0].replace(date[0], "")
+                            new_line = lines[0]  # .replace(date[0], "")
                             task = self.extract_task(new_line)
+                            task = task.strip()+"."
+                            task = task[0].upper() + task[1:]
                             if task in events[event]:
                                 task = line
                             events[event][task] = date[1]
