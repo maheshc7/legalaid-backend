@@ -4,9 +4,11 @@ Handles the calls to make the Outlook API authentication
 Adds new events to the calendar.
 """
 
+import boto3
 import json
 from flask import Blueprint, jsonify, request
 from app.services.pdf_service import PdfService
+from app import config
 
 main_app = Blueprint("main_app", __name__)
 
@@ -17,6 +19,33 @@ def index():
     Index page for the server
     """
     return "You have reached the Homepage of LegalAid Backend"
+
+
+@main_app.route("/case/<int:case_id>", methods=["GET"])
+def get_details(case_id: int):
+    """
+    Checks if the request contains the file name,
+    Get the file from S3 bucket and process it.
+    Returns
+        200 : Suceess
+        500 : Error
+    """
+    try:
+        filename = case_id + ".pdf"
+        filepath = f"./temp_files/{filename}"
+        bucket_name = config.S3_BUCKET
+        s3_client = boto3.client('s3')
+        s3_client.download_file(bucket_name, filename, filepath)
+
+        pdf_service = PdfService(filepath)
+
+        is_authorized = False  # request.json['is_authorized']
+        case_and_events = pdf_service.parse_pdf(is_authorized)
+
+        return jsonify(case_and_events), 200
+
+    except Exception as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @main_app.route("/upload", methods=["POST"])

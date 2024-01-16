@@ -11,8 +11,9 @@ class PdfService:
     Service class for PdfParser
     """
 
-    def __init__(self, file):
+    def __init__(self, file=None, filepath=None):
         self.file = file
+        self.filepath = filepath
 
     def parse_pdf(self, is_authorized):
         """
@@ -21,10 +22,12 @@ class PdfService:
         TODO: Gpt authorization is hardcoded to False, will create a separate endpoint for it.
         """
         try:
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
-                self.file.save(temp_file.name)
+            if not self.filepath:
+                with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+                    self.file.save(temp_file.name)
+                    self.filepath = temp_file.name
 
-            parser = PdfParser(temp_file.name)
+            parser = PdfParser(self.filepath)
             case_details = parser.get_case_details()
 
             event_details = []
