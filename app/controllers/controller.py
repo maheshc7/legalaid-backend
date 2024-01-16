@@ -31,7 +31,7 @@ def get_details(case_id):
         500 : Error
     """
     try:
-        filename = case_id + ".pdf"
+        filename = str(case_id) + ".pdf"
         filepath = f"./temp_files/{filename}"
         bucket_name = config.S3_BUCKET
         s3_client = boto3.client('s3')
