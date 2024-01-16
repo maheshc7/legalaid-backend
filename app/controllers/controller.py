@@ -21,8 +21,8 @@ def index():
     return "You have reached the Homepage of LegalAid Backend"
 
 
-@main_app.route("/case/<int:case_id>", methods=["GET"])
-def get_details(case_id: int):
+@main_app.route("/case/<case_id>", methods=["GET"])
+def get_details(case_id):
     """
     Checks if the request contains the file name,
     Get the file from S3 bucket and process it.
