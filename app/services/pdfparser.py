@@ -34,6 +34,7 @@ class PdfParser:
         try:
             self.nlp = spacy.load("en_core_web_sm")
             # creating a pdf file object
+            self.filepath = filepath
             self.file = fitz.open(filepath, filetype="pdf")
             self.content = self.__read_pdf()  # .lower()
         except Exception as error:
@@ -59,6 +60,8 @@ class PdfParser:
             for page_num in range(self.file.page_count):
                 page = self.file.load_page(page_num)
                 text = page.get_text(clip=cropbox, sort=True)
+                page.draw_rect(cropbox, color=(1, 0, 0),
+                               fill=(1, 1, 0), fill_opacity=0.2)
                 content += text
             return content
         except Exception as error:
@@ -69,6 +72,8 @@ class PdfParser:
         """
         Closes the file
         """
+        self.file.save(filename=self.filepath,
+                       incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
         self.file.close()
 
     def clean_pdf(self, content):

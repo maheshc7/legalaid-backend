@@ -63,4 +63,4 @@ class PdfService:
 
         finally:
             parser.close_pdf()
-            os.remove(temp_file.name)
+            os.remove(self.filepath)

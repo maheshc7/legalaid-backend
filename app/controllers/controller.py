@@ -37,10 +37,13 @@ def get_details(case_id):
         s3_client = boto3.client('s3')
         s3_client.download_file(bucket_name, filename, filepath)
 
-        pdf_service = PdfService(filepath)
+        pdf_service = PdfService(filepath=filepath)
 
-        is_authorized = False  # request.json['is_authorized']
+        is_authorized = request.args['is_authorized'].lower() == "true"
         case_and_events = pdf_service.parse_pdf(is_authorized)
+
+        # re-upload the updated(masked) file to s3
+        s3_client.download_file(bucket_name, filename, filepath)
 
         return jsonify(case_and_events), 200
 
