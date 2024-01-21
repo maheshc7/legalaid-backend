@@ -1,5 +1,4 @@
 # app/services/pdf_service.py
-import os
 import tempfile
 import uuid
 
@@ -63,4 +62,3 @@ class PdfService:
 
         finally:
             parser.close_pdf()
-            os.remove(self.filepath)

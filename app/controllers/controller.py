@@ -4,8 +4,9 @@ Handles the calls to make the Outlook API authentication
 Adds new events to the calendar.
 """
 
-import boto3
 import json
+import os
+import boto3
 from flask import Blueprint, jsonify, request
 from app.services.pdf_service import PdfService
 from app import config
@@ -43,7 +44,8 @@ def get_details(case_id):
         case_and_events = pdf_service.parse_pdf(is_authorized)
 
         # re-upload the updated(masked) file to s3
-        s3_client.download_file(bucket_name, filename, filepath)
+        s3_client.upload_file(filepath, bucket_name, filename)
+        os.remove(filepath)
 
         return jsonify(case_and_events), 200
 
