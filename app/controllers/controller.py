@@ -22,8 +22,8 @@ def index():
     return "You have reached the Homepage of LegalAid Backend"
 
 
-@main_app.route("/case/<case_id>", methods=["GET"])
-def get_details(case_id):
+@main_app.route("/order-details", methods=["GET"])
+def get_details():
     """
     Checks if the request contains the file name,
     Get the file from S3 bucket and process it.
@@ -32,7 +32,7 @@ def get_details(case_id):
         500 : Error
     """
     try:
-        filename = str(case_id) + ".pdf"
+        filename = str(request.args['filename'])
         filepath = f"./temp_files/{filename}"
         bucket_name = config.S3_BUCKET
         s3_client = boto3.client('s3')
@@ -40,11 +40,12 @@ def get_details(case_id):
 
         pdf_service = PdfService(filepath=filepath)
 
-        is_authorized = request.args['is_authorized'].lower() == "true"
+        is_authorized = request.headers['Is-Authorized'].lower() == "true"
         case_and_events = pdf_service.parse_pdf(is_authorized)
 
         # re-upload the updated(masked) file to s3
-        s3_client.upload_file(filepath, bucket_name, filename)
+        s3_client.upload_file(filepath, bucket_name, filename, ExtraArgs={
+            'ContentType': 'application/pdf'})
         os.remove(filepath)
 
         return jsonify(case_and_events), 200
