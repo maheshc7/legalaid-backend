@@ -105,7 +105,7 @@ def test_get_events(pdf_parser):
     assert isinstance(result, dict)
     assert "no event" in result
     assert "Initial disclosures" in result
-    assert "Private mediation" in r
+    assert "Private mediation" in result
 
 
 def test_get_gpt_events_unauthorized(pdf_parser):
