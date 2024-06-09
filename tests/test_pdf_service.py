@@ -21,7 +21,6 @@ def pdf_parser_mock():
 def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock):
     """
     Test the PdfParser Service
-
     Mock the PdfParser and pdf_file to test only the working of the Service class.
     """
     # Arrange
@@ -49,7 +48,7 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
 
     # Assert
     assert result == {
-        "case": {"caseNum": "C123", "court": "Court", "client": "", "pl
+        "case": {"caseNum": "C123", "court": "Court", "client": "", "plaintiff": "Harvey Specter", "defendant": "Saul Goodman"},
         "events": [
             {
                 "id": result["events"][0]["id"],
@@ -79,7 +78,6 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
 
     # Ensure that the temporary file was not removed
     # os_remove_mock.assert_called_once()
-
 
 @patch("app.services.pdf_service.PdfParser", autospec=True)
 @patch("tempfile.NamedTemporaryFile", autospec=True)
