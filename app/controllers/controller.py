@@ -15,6 +15,7 @@ main_app = Blueprint("main_app", __name__)
 
 
 @main_app.route("/", methods=["GET"])
+
 def index():
     """
     Index page for the server
@@ -66,7 +67,6 @@ def upload_file():
     """
     try:
         if "file" not in request.files:
-            print("here")
             return jsonify({"error": "No file provided"}), 400
 
         file = request.files["file"]

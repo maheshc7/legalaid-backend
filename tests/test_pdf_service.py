@@ -4,18 +4,15 @@ from datetime import datetime
 import pytest
 from app.services.pdf_service import PdfService
 
-
 # Fixture for mocking the PDF file
 @pytest.fixture
 def pdf_file_mock():
     return Mock()
 
-
 # Fixture for mocking the PdfParser class
 @pytest.fixture
 def pdf_parser_mock():
     return MagicMock()
-
 
 # Test the parse_pdf method
 @patch("app.services.pdf_service.PdfParser", autospec=True)
@@ -24,6 +21,7 @@ def pdf_parser_mock():
 def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock):
     """
     Test the PdfParser Service
+
     Mock the PdfParser and pdf_file to test only the working of the Service class.
     """
     # Arrange
@@ -51,7 +49,7 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
 
     # Assert
     assert result == {
-        "case": {"caseNum": "C123", "court": "Court", "client": "", "plaintiff": "Harvey Specter", "defendant": "Saul Goodman"},
+        "case": {"caseNum": "C123", "court": "Court", "client": "", "pl
         "events": [
             {
                 "id": result["events"][0]["id"],
@@ -123,7 +121,6 @@ def test_parse_pdf_gpt(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_
                 "date": "2023-07-03", "description": "GPT Event 1"},
             {"id": "5678", "subject": "AI Subject 2",
                 "date": "2023-07-04", "description": "GPT Event 2"},
-
         ],
         "length": 2,
     }

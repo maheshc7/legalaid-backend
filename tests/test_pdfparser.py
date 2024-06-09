@@ -20,7 +20,6 @@ def pdf_page(pdf_parser):
     # You can customize it based on your actual needs
     return pdf_parser.file.load_page(0)
 
-
 # def test_read_pdf(pdf_parser):
 #     """
 #     Test __read_pdf function of PdfParser class.
@@ -77,7 +76,7 @@ def test_get_case_details(pdf_parser):
         "Saul Goodman",
         "Harvey Specter",
     ]
-    pdf_parser.extract_parties_details = Mock(return_value=mock_page)
+    pdf_parser.extract_parties_details = Mock(return_value=mock_page
 
     expected_result = {
         "caseNum": "C123846",
@@ -106,15 +105,14 @@ def test_get_events(pdf_parser):
     assert isinstance(result, dict)
     assert "no event" in result
     assert "Initial disclosures" in result
-    assert "Private mediation" in result
+    assert "Private mediation" in r
 
 
 def test_get_gpt_events_unauthorized(pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when unauthorized.
     """
-
-    result = pdf_parser.get_gpt_events(False)
+    result = pdf_parser.get_gpt_eve
 
     assert result == "Not Authorized to use GPT"
 
@@ -127,12 +125,12 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
     mock_get_completion.return_value = [
         {
             "date": "2022-07-01",
-            "description": "The parties' initial disclosures shall be completed by .",
+            "description": "The parties' initial disclosures 
             "subject": "Initial Disclosures",
         },
         {
             "date": "2022-12-30",
-            "description": "The parties shall complete mediation .",
+            "description": "The parties shall com
             "subject": "Mediation",
         },
         {
@@ -142,7 +140,7 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
         },
     ]
 
-    result = pdf_parser.get_gpt_events(True)
+    result = pdf_pars
     assert isinstance(result, list)
     for event in result:
         assert isinstance(event, dict)

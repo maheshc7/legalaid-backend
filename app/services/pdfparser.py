@@ -76,6 +76,7 @@ class PdfParser:
         """
         self.file.save(filename=self.filepath,
                        incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
+
         self.file.close()
 
     def clean_pdf(self, content):
@@ -84,7 +85,6 @@ class PdfParser:
             Returns:
                 The cleaned up string.
         """
-
         # content = content.lower()
         content = re.sub(r"\n\s+", "\n ", content)
         content = re.sub(r"(\s\n)+", " \n", content)
@@ -367,6 +367,7 @@ class PdfParser:
                             "PARSERS": ["absolute-time"],
                             "REQUIRE_PARTS": ['day', 'month', 'year']
                         },
+
                     )
                     if date:
                         dates.append(date[0])
@@ -446,6 +447,7 @@ class PdfParser:
             raise Exception("Error extracting events:", str(error)) from error
 
     def get_gpt_events(self, is_authorized):
+
         """
         Returns the events and their corresponding dates
             Returns:

@@ -20,13 +20,11 @@ def app():
 def client(app):
     return app.test_client()
 
-
 def test_index(client):
     response = client.get("/")
 
     assert response.status_code == 200
     assert b"Homepage" in response.data
-
 
 def test_upload_file_no_file(client):
     response = client.post("/upload")
