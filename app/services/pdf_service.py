@@ -1,5 +1,4 @@
 # app/services/pdf_service.py
-import os
 import tempfile
 import uuid
 
@@ -7,38 +6,53 @@ from app.services.pdfparser import PdfParser
 
 
 class PdfService:
-    def __init__(self, file):
+    """
+    Service class for PdfParser
+    """
+
+    def __init__(self, file=None, filepath=None):
         self.file = file
+        self.filepath = filepath
 
-    def parse_pdf(self, app):
+    def parse_pdf(self, is_authorized):
+        """
+        Creates a temporary file for the passed file and calls PdfParser on this file
+        Extracts the case details, events and gpt_events if authorized
+        TODO: Gpt authorization is hardcoded to False, will create a separate endpoint for it.
+        """
         try:
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
-                self.file.save(temp_file.name)
+            if not self.filepath:
+                with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+                    filepath = f"./temp_files/{self.file.filename}"
+                    self.file.save(filepath)
+                    self.filepath = filepath
 
-            parser = PdfParser(temp_file.name)
+            parser = PdfParser(self.filepath)
             case_details = parser.get_case_details()
-            events = parser.get_events()
-            gpt_events = parser.get_gpt_events(app, False)
 
             event_details = []
-            for event, subevent in events.items():
-                if event == "no event":
-                    continue
-                event = event.title()
-                for task, date in subevent.items():
-                    task = task.capitalize()
-                    data = {
-                        "id": str(uuid.uuid4()),
-                        "subject": event,
-                        "date": str(date.date()),
-                        "description": task,
-                    }
-                    event_details.append(data)
+            if is_authorized:
+                event_details = parser.get_gpt_events(is_authorized)
+
+            else:
+                events = parser.get_events()
+                for event, subevent in events.items():
+                    if event == "no event":
+                        continue
+                    event = event.title()
+                    for task, date in subevent.items():
+                        # task = task.capitalize()
+                        data = {
+                            "id": str(uuid.uuid4()),
+                            "subject": event,
+                            "date": str(date.date()),
+                            "description": task,
+                        }
+                        event_details.append(data)
 
             details = {
                 "case": case_details,
                 "events": event_details,
-                "gpt_events": gpt_events,
                 "length": len(event_details),
             }
 
@@ -46,7 +60,6 @@ class PdfService:
 
         except Exception as error:
             raise Exception("Error parsing PDF: ", str(error)) from error
-        
+
         finally:
             parser.close_pdf()
-            os.remove(temp_file.name)

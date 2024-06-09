@@ -1,7 +1,6 @@
-import os
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 import pytest
-import spacy
+import fitz
 from app.services.pdfparser import PdfParser
 
 
@@ -13,6 +12,13 @@ def pdf_parser():
     parser = PdfParser("./Sample Files/Posner -  Scheduling Order.pdf")
     # parser.nlp = MagicMock()
     return parser
+
+
+@pytest.fixture
+def pdf_page(pdf_parser):
+    # This fixture can be used to create a mock PDF page for testing
+    # You can customize it based on your actual needs
+    return pdf_parser.file.load_page(0)
 
 
 # def test_read_pdf(pdf_parser):
@@ -55,7 +61,7 @@ def test_clean_pdf(pdf_parser):
     Test clean_pdf function of PdfParser class.
     """
     content = """This is some text with\n\n\nnewlines and     spaces."""
-    expected_result = "this is some text with\n newlines and spaces."
+    expected_result = "This is some text with\n newlines and spaces."
     result = pdf_parser.clean_pdf(content)
     assert result == expected_result
 
@@ -64,13 +70,19 @@ def test_get_case_details(pdf_parser):
     """
     Test get_case_details function of PdfParser class.
     """
-    mock_page = Mock()
-    mock_page.get_text.return_value = "case no.: C123846"
-    pdf_parser.file.load_page = Mock(return_value=mock_page)
+    # mock_page = Mock()
+    mock_page = [
+        "C123846",
+        "Arizona Superior Maricopa County",
+        "Saul Goodman",
+        "Harvey Specter",
+    ]
+    pdf_parser.extract_parties_details = Mock(return_value=mock_page)
 
     expected_result = {
         "caseNum": "C123846",
         "court": "Arizona Superior Maricopa County",
+        "client": "",
         "plaintiff": "Saul Goodman",
         "defendant": "Harvey Specter",
     }
@@ -83,25 +95,26 @@ def test_get_events(pdf_parser):
     Test get_events function of PdfParser class.
     """
     # Mock the content and spacy
-    pdf_parser.content = pdf_parser.clean_pdf("""1. Initial disclosures: The parties’ initial disclosures shall be completed by July 1, 2022.\n\
+    pdf_parser.content = pdf_parser.clean_pdf(
+        """1. Initial disclosures: The parties’ initial disclosures shall be completed by July 1, 2022.\n\
     2. Private mediation. The  parties  shall  participate  in  mediation  using  a  private mediator  agreed  to  by  the  parties.\
-    The  parties  shall  complete  mediation  by  December  30, 2022.""")
+    The  parties  shall  complete  mediation  by  December  30, 2022."""
+    )
 
     result = pdf_parser.get_events()
     print(result)
     assert isinstance(result, dict)
     assert "no event" in result
-    assert "initial disclosures" in result
-    assert "private mediation" in result
+    assert "Initial disclosures" in result
+    assert "Private mediation" in result
 
 
 def test_get_gpt_events_unauthorized(pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when unauthorized.
     """
-    app_mock = Mock()
 
-    result = pdf_parser.get_gpt_events(app_mock, False)
+    result = pdf_parser.get_gpt_events(False)
 
     assert result == "Not Authorized to use GPT"
 
@@ -111,17 +124,15 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when authorized.
     """
-    app_mock = Mock()
-    app_mock.config = {"OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY")}
     mock_get_completion.return_value = [
         {
             "date": "2022-07-01",
-            "description": "The parties’ initial disclosures shall be completed",
+            "description": "The parties' initial disclosures shall be completed by .",
             "subject": "Initial Disclosures",
         },
         {
             "date": "2022-12-30",
-            "description": "The parties shall complete mediation",
+            "description": "The parties shall complete mediation .",
             "subject": "Mediation",
         },
         {
@@ -131,7 +142,7 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
         },
     ]
 
-    result = pdf_parser.get_gpt_events(app_mock, True)
+    result = pdf_parser.get_gpt_events(True)
     assert isinstance(result, list)
     for event in result:
         assert isinstance(event, dict)
@@ -140,12 +151,12 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
         assert "subject" in event
 
 
-def test_get_gpt_events_invalid_key(pdf_parser):
+@patch("app.services.gpt_parser.config", autospec=True)
+def test_get_gpt_events_invalid_key(mock_config, pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when unauthorized.
     """
-    app_mock = Mock()
-    app_mock.config = {"OPENAI_API_KEY": "invalid_key"}
+    mock_config.OPENAI_API_KEY = "invalid_key"
     with patch(
         "app.services.pdfparser.gpt_parser.get_completion"
     ) as mock_get_completion:
@@ -153,10 +164,45 @@ def test_get_gpt_events_invalid_key(pdf_parser):
             "Incorrect API key provided: invalid_key"
         )
         with pytest.raises(Exception) as exc_info:
-            pdf_parser.get_gpt_events(app_mock, is_authorized=True)
+            pdf_parser.get_gpt_events(is_authorized=True)
 
         assert "Error extracting GPT events:" in str(exc_info.value)
         assert "Incorrect API key provided: invalid_key" in str(exc_info.value)
 
 
-# Add more test functions...
+def test_find_court_bbox(pdf_parser, pdf_page):
+    top_half = pdf_page.get_textpage(clip=pdf_page.rect)
+    court_bbox = pdf_parser._find_court_bbox(pdf_page, top_half)
+    assert isinstance(court_bbox, fitz.Rect)
+
+
+def test_find_parties_y0(pdf_parser, pdf_page):
+    top_half = pdf_page.get_textpage(clip=pdf_page.rect)
+    court_bbox = pdf_parser._find_court_bbox(pdf_page, top_half)
+    parties_y0 = pdf_parser._find_parties_y0(pdf_page, court_bbox, top_half)
+    assert isinstance(parties_y0, (int, float))
+
+
+def test_find_case_x0_values(pdf_parser, pdf_page):
+    case_page = pdf_page.get_textpage(clip=pdf_page.rect)
+    x0_values = pdf_parser._find_case_x0_values(pdf_page, case_page)
+    assert isinstance(x0_values, list)
+
+
+def test_extract_case_number(pdf_parser):
+    case_detail = "Case No.: ABC123"
+    case_num = pdf_parser._extract_case_number(case_detail.lower())
+    assert case_num == "ABC123"
+
+
+def test_extract_case_and_parties(pdf_parser, pdf_page):
+    top_half = pdf_page.get_textpage(clip=pdf_page.rect)
+    court_bbox = pdf_parser._find_court_bbox(pdf_page, top_half)
+    parties_y0 = pdf_parser._find_parties_y0(pdf_page, court_bbox, top_half)
+    case_num, court_details, plaintiff, defendant = pdf_parser.extract_parties_details(
+        pdf_page
+    )
+    assert isinstance(case_num, str)
+    assert isinstance(court_details, str)
+    assert isinstance(plaintiff, str)
+    assert isinstance(defendant, str)

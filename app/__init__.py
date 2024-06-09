@@ -1,12 +1,11 @@
 # app/__init__.py
-import os
-from dotenv import load_dotenv
 from flask import Flask
+from flask_cors import CORS
+from app.controllers.controller import main_app
+
 
 def create_app():
     app = Flask(__name__)
-    load_dotenv() 
-    app.config['OPENAI_API_KEY'] = os.environ.get('OPENAI_API_KEY')
-    # Configure the app, register blueprints, etc.
-
+    CORS(app)
+    app.register_blueprint(main_app)
     return app
