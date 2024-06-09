@@ -76,7 +76,7 @@ def test_get_case_details(pdf_parser):
         "Saul Goodman",
         "Harvey Specter",
     ]
-    pdf_parser.extract_parties_details = Mock(return_value=mock_page
+    pdf_parser.extract_parties_details = Mock(return_value=mock_page)
 
     expected_result = {
         "caseNum": "C123846",
