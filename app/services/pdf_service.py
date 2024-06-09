@@ -23,8 +23,9 @@ class PdfService:
         try:
             if not self.filepath:
                 with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
-                    self.file.save(temp_file.name)
-                    self.filepath = temp_file.name
+                    filepath = f"./temp_files/{self.file.filename}"
+                    self.file.save(filepath)
+                    self.filepath = filepath
 
             parser = PdfParser(self.filepath)
             case_details = parser.get_case_details()

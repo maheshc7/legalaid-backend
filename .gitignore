@@ -164,6 +164,7 @@ cython_debug/
 /tokens
 /Test Orders
 /Sample Files
+temp_files
 
 #github
 .github

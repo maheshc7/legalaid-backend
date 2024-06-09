@@ -53,7 +53,8 @@ class PdfParser:
                 (block for block in blocks if block[1] >
                  10 and block[2] < 100 and block[6] == 0),
                 key=lambda x: (x[0], -x[1]))
-            x0_crop = block_list[0][2]  # check content and
+            # TODO: Check content for new line or number.
+            x0_crop = block_list[-1][2]
             cropbox = fitz.Rect(x0_crop, 30, page_0.rect.width,
                                 page_0.rect.height-30)
             content = ""
@@ -62,6 +63,7 @@ class PdfParser:
                 text = page.get_text(clip=cropbox, sort=True)
                 page.draw_rect(cropbox, color=(1, 0, 0),
                                fill=(1, 1, 0), fill_opacity=0.2)
+                text = re.sub(r'\s*\n+\s*$', ' ', text)
                 content += text
             return content
         except Exception as error:
@@ -89,6 +91,8 @@ class PdfParser:
         content = re.sub(r"( +)", " ", content)
         content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]", "", content)
         # content = re.sub(r"\d{1,2}\s\n", "", content)
+        content = re.sub(
+            r" \n(\d{1,2}) \n([a-zA-Z0-9 ]+):", r"\n\1. \n\2:", content)  # TODO: Test with all files
         content = re.sub(r"(\W\d{1,2}\.\s)\n+", r"\n \1", content)
         content = re.sub(r"\n(\d{1,2}\.)", r"\n \1", content)
         content = re.sub(r"\n(\S+?)", r" \1", content)

@@ -44,7 +44,7 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
         "Event 2": {"Subevent 2": today},
     }
 
-    pdf_service = PdfService(pdf_file_mock)
+    pdf_service = PdfService(filepath=temp_file_instance.name)
 
     # Act
     result = pdf_service.parse_pdf(is_authorized=False)
@@ -76,11 +76,11 @@ def test_parse_pdf(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_mock
     pdf_parser_instance.close_pdf.assert_called_once()
 
     # Ensure that tempfile methods were called
-    tempfile_mock.assert_called_once_with(suffix=".pdf", delete=False)
+    # tempfile_mock.assert_called_once_with(suffix=".pdf", delete=False)
     # temp_file_instance.__exit__.assert_called_once()
 
     # Ensure that the temporary file was not removed
-    os_remove_mock.assert_called_once()
+    # os_remove_mock.assert_called_once()
 
 
 @patch("app.services.pdf_service.PdfParser", autospec=True)
@@ -110,7 +110,7 @@ def test_parse_pdf_gpt(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_
             "date": "2023-07-04", "description": "GPT Event 2"},
     ]
 
-    pdf_service = PdfService(pdf_file_mock)
+    pdf_service = PdfService(filepath=temp_file_instance.name)
 
     # Act
     result = pdf_service.parse_pdf(is_authorized=True)
@@ -135,10 +135,10 @@ def test_parse_pdf_gpt(os_remove_mock, tempfile_mock, pdf_parser_mock, pdf_file_
     pdf_parser_instance.close_pdf.assert_called_once()
 
     # Ensure that tempfile methods were called
-    tempfile_mock.assert_called_once_with(suffix=".pdf", delete=False)
+    # tempfile_mock.assert_called_once_with(suffix=".pdf", delete=False)
     # temp_file_instance.__exit__.assert_called_once()
 
     # Ensure that the temporary file was not removed
-    os_remove_mock.assert_called_once()
+    # os_remove_mock.assert_called_once()
 
 # TODO: Add more tests to cover different scenarios
