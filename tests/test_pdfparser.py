@@ -20,6 +20,7 @@ def pdf_page(pdf_parser):
     # You can customize it based on your actual needs
     return pdf_parser.file.load_page(0)
 
+
 # def test_read_pdf(pdf_parser):
 #     """
 #     Test __read_pdf function of PdfParser class.
@@ -112,7 +113,8 @@ def test_get_gpt_events_unauthorized(pdf_parser):
     """
     Test get_gpt_events function of PdfParser class when unauthorized.
     """
-    result = pdf_parser.get_gpt_eve
+
+    result = pdf_parser.get_gpt_events(False)
 
     assert result == "Not Authorized to use GPT"
 
@@ -125,12 +127,12 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
     mock_get_completion.return_value = [
         {
             "date": "2022-07-01",
-            "description": "The parties' initial disclosures 
+            "description": "The parties' initial disclosures shall be completed by .",
             "subject": "Initial Disclosures",
         },
         {
             "date": "2022-12-30",
-            "description": "The parties shall com
+            "description": "The parties shall complete mediation .",
             "subject": "Mediation",
         },
         {
@@ -140,7 +142,7 @@ def test_get_gpt_events_authorized(mock_get_completion, pdf_parser):
         },
     ]
 
-    result = pdf_pars
+    result = pdf_parser.get_gpt_events(True)
     assert isinstance(result, list)
     for event in result:
         assert isinstance(event, dict)
