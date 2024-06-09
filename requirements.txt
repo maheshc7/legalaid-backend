@@ -2,10 +2,11 @@ dateparser==1.1.7
 Flask==2.2.3
 Werkzeug==2.2.2
 pdfminer.six==20221105
-PyMuPDF==1.21.1
+PyMuPDF==1.23.3
 PyPDF2==2.12.0
 spacy==3.5.0
 en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
 openai==0.27.8
 python-dotenv==1.0.0
 flask_cors==4.0.0
+boto3==1.34.19

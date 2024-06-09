@@ -34,6 +34,7 @@ class PdfParser:
         try:
             self.nlp = spacy.load("en_core_web_sm")
             # creating a pdf file object
+            self.filepath = filepath
             self.file = fitz.open(filepath, filetype="pdf")
             self.content = self.__read_pdf()  # .lower()
         except Exception as error:
@@ -46,10 +47,23 @@ class PdfParser:
         """
         # Using PyMuPDF - fitz library to crop
         try:
+            page_0 = self.file[0]
+            blocks = page_0.get_text("blocks")
+            block_list = sorted(
+                (block for block in blocks if block[1] >
+                 10 and block[2] < 100 and block[6] == 0),
+                key=lambda x: (x[0], -x[1]))
+            # TODO: Check content for new line or number.
+            x0_crop = block_list[-1][2]
+            cropbox = fitz.Rect(x0_crop, 30, page_0.rect.width,
+                                page_0.rect.height-30)
             content = ""
             for page_num in range(self.file.page_count):
                 page = self.file.load_page(page_num)
-                text = page.get_text()
+                text = page.get_text(clip=cropbox, sort=True)
+                page.draw_rect(cropbox, color=(1, 0, 0),
+                               fill=(1, 1, 0), fill_opacity=0.2)
+                text = re.sub(r'\s*\n+\s*$', ' ', text)
                 content += text
             return content
         except Exception as error:
@@ -60,6 +74,8 @@ class PdfParser:
         """
         Closes the file
         """
+        self.file.save(filename=self.filepath,
+                       incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
         self.file.close()
 
     def clean_pdf(self, content):
@@ -74,12 +90,14 @@ class PdfParser:
         content = re.sub(r"(\s\n)+", " \n", content)
         content = re.sub(r"( +)", " ", content)
         content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]", "", content)
-        content = re.sub(r"\d{1,2}\s\n", "", content)
+        # content = re.sub(r"\d{1,2}\s\n", "", content)
+        content = re.sub(
+            r" \n(\d{1,2}) \n([a-zA-Z0-9 ]+):", r"\n\1. \n\2:", content)  # TODO: Test with all files
         content = re.sub(r"(\W\d{1,2}\.\s)\n+", r"\n \1", content)
         content = re.sub(r"\n(\d{1,2}\.)", r"\n \1", content)
-        content = re.sub(r"\n(\S+?)", r"\1", content)
-        content = re.sub("a.m.", "am.", content)
-        content = re.sub("p.m.", "pm.", content)
+        content = re.sub(r"\n(\S+?)", r" \1", content)
+        content = re.sub("a.m.", "am", content)
+        content = re.sub("p.m.", "pm", content)
         return content
 
     def extract_meaningful_words(self, text):
@@ -195,10 +213,11 @@ class PdfParser:
             case_num = ""
             case_detail = case_detail.splitlines()
             for line in case_detail:
-                line = re.split(r"case no\.|case|no\.:?\s?", line)[-1]
+                case_list = re.split(r"case no\.|case|no\.:?\s?", line)
+                line = case_list[-1]
                 line = line.replace(" ", "")
                 match = re.search(r"([a-z]\S{5,})", line)
-                if match:
+                if len(case_list) > 1 and match:
                     case_num = match.group(1).replace(" ", "").upper()
                     return self.clean_pdf(case_num)
         except Exception as error:
@@ -366,19 +385,25 @@ class PdfParser:
             event = ""
             content = self.clean_pdf(self.content)  # .lower())
             events["no event"] = {}
-            paragraphs = re.split("\n", content)
+            paragraphs = content.splitlines()
             for para in paragraphs:
                 para = self.clean_pdf(para)
+
+                head = para.split(".")
+                head = head[0]+"."+head[1]+"." if len(head) > 2 else para
+                head = para if len(head) < 10 else head
+
                 new_events = re.findall(
-                    r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", para)
+                    r"(\d{1,2}\.[A-Za-z0-9()\-\, ]+)(?:\.|\:)", head)
+
                 if new_events:
                     para = re.sub(
-                        r"(\d{1,3}\.[A-Za-z()\-\, ]+)(?:\.|\:)", r"\1:", para)
+                        r"(\d{1,2}\.[A-Za-z0-9()\-\, ]+)(?:\.|\:)", r"\1.", para, 1)
+
                 new_event = re.search(
-                    r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", para
+                    r"\d{1,2}\. *([A-Za-z0-9()\-\, ]{10,})(?:\:|\.)", head
                 )
-                para = re.sub(
-                    r"\d{1,3}\. *([A-Za-z()\-\, ]{10,})(?:\:|\.)", "", para)
+
                 if new_event:
                     event = new_event.group(1)
                     events[event] = {}
@@ -386,15 +411,16 @@ class PdfParser:
                 sentences = self.nlp(para.strip())
                 for line in sentences.sents:
                     line = line.text.strip()
+                    line = re.sub(r'\s*[^0-9a-zA-Z\s\(\)\-:]+\s*', ' ', line)
                     re_dates = search_dates(
                         line,
                         settings={"STRICT_PARSING": True,
                                   "PARSERS": ["absolute-time"]},
                     )
                     nlp_dates = self.extract_date(line)
+
                     if not re_dates:
                         re_dates = []
-
                     dates = nlp_dates if (
                         len(nlp_dates) > len(re_dates)) else re_dates
                     if not event:
@@ -405,8 +431,10 @@ class PdfParser:
                             lines = [line]
                             if len(dates) > 1:
                                 lines = line.split(date[0])
-                            new_line = lines[0].replace(date[0], "")
+                            new_line = lines[0]  # .replace(date[0], "")
                             task = self.extract_task(new_line)
+                            task = task.strip()+"."
+                            task = task[0].upper() + task[1:]
                             if task in events[event]:
                                 task = line
                             events[event][task] = date[1]

@@ -1,5 +1,4 @@
 # app/services/pdf_service.py
-import os
 import tempfile
 import uuid
 
@@ -11,8 +10,9 @@ class PdfService:
     Service class for PdfParser
     """
 
-    def __init__(self, file):
+    def __init__(self, file=None, filepath=None):
         self.file = file
+        self.filepath = filepath
 
     def parse_pdf(self, is_authorized):
         """
@@ -21,10 +21,13 @@ class PdfService:
         TODO: Gpt authorization is hardcoded to False, will create a separate endpoint for it.
         """
         try:
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
-                self.file.save(temp_file.name)
+            if not self.filepath:
+                with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+                    filepath = f"./temp_files/{self.file.filename}"
+                    self.file.save(filepath)
+                    self.filepath = filepath
 
-            parser = PdfParser(temp_file.name)
+            parser = PdfParser(self.filepath)
             case_details = parser.get_case_details()
 
             event_details = []
@@ -38,7 +41,7 @@ class PdfService:
                         continue
                     event = event.title()
                     for task, date in subevent.items():
-                        task = task.capitalize()
+                        # task = task.capitalize()
                         data = {
                             "id": str(uuid.uuid4()),
                             "subject": event,
@@ -60,4 +63,3 @@ class PdfService:
 
         finally:
             parser.close_pdf()
-            os.remove(temp_file.name)

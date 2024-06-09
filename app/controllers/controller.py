@@ -5,8 +5,11 @@ Adds new events to the calendar.
 """
 
 import json
+import os
+import boto3
 from flask import Blueprint, jsonify, request
 from app.services.pdf_service import PdfService
+from app import config
 
 main_app = Blueprint("main_app", __name__)
 
@@ -17,6 +20,38 @@ def index():
     Index page for the server
     """
     return "You have reached the Homepage of LegalAid Backend"
+
+
+@main_app.route("/order-details", methods=["GET"])
+def get_details():
+    """
+    Checks if the request contains the file name,
+    Get the file from S3 bucket and process it.
+    Returns
+        200 : Suceess
+        500 : Error
+    """
+    try:
+        filename = str(request.args['filename'])
+        filepath = f"./temp_files/{filename}"
+        bucket_name = config.S3_BUCKET
+        s3_client = boto3.client('s3')
+        s3_client.download_file(bucket_name, filename, filepath)
+
+        pdf_service = PdfService(filepath=filepath)
+
+        is_authorized = request.headers['Is-Authorized'].lower() == "true"
+        case_and_events = pdf_service.parse_pdf(is_authorized)
+
+        # re-upload the updated(masked) file to s3
+        s3_client.upload_file(filepath, bucket_name, filename, ExtraArgs={
+            'ContentType': 'application/pdf'})
+        os.remove(filepath)
+
+        return jsonify(case_and_events), 200
+
+    except Exception as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @main_app.route("/upload", methods=["POST"])
